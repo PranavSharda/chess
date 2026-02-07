@@ -1,0 +1,453 @@
+.analyze-game-container {
+  min-height: 100vh;
+  background: #312e2b;
+  color: #fff;
+}
+
+.analyze-game-layout {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+  gap: 1.5rem;
+}
+
+/* Board Section */
+.board-section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.player-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #262421;
+  border-radius: 4px;
+}
+
+.player-bar .player-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.player-bar .player-rating {
+  color: #9e9e9e;
+  font-size: 0.9rem;
+}
+
+.chessboard-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  background: #262421;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.eval-bar-container {
+  width: 28px;
+  background: #333;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.eval-bar-fill {
+  background: #fff;
+  width: 100%;
+  transition: height 0.3s ease;
+}
+
+.eval-number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #666;
+  white-space: nowrap;
+  text-shadow: 0 0 2px rgba(0,0,0,0.5);
+}
+
+.move-controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #262421;
+  border-radius: 4px;
+}
+
+.control-btn {
+  width: 60px;
+  height: 44px;
+  background: #3d3a37;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.control-btn:hover {
+  background: #4d4a47;
+}
+
+.control-btn.play-btn {
+  background: #81b64c;
+  width: 70px;
+}
+
+.control-btn.play-btn:hover {
+  background: #6fa33e;
+}
+
+/* Analysis Section */
+.analysis-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 340px;
+  max-width: 420px;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #262421;
+  border-radius: 4px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #81b64c;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.back-btn:hover {
+  text-decoration: underline;
+}
+
+.game-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.game-date {
+  color: #9e9e9e;
+  font-size: 0.85rem;
+}
+
+.game-result {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Top Lines Panel - Chess.com style */
+.top-lines-panel {
+  background: #262421;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lines-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  background: #1a1917;
+  border-bottom: 1px solid #3d3a37;
+}
+
+.lines-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.engine-info {
+  color: #9e9e9e;
+  font-size: 0.75rem;
+}
+
+.lines-list {
+  padding: 0.5rem;
+}
+
+.line-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.line-row:hover {
+  background: #3d3a37;
+}
+
+.line-row.best-line {
+  background: #3d3a37;
+}
+
+.line-eval {
+  min-width: 50px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.line-eval.white-better {
+  background: #fff;
+  color: #333;
+}
+
+.line-eval.black-better {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+}
+
+.line-moves {
+  font-size: 0.85rem;
+  color: #ccc;
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lines-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: #9e9e9e;
+  font-size: 0.85rem;
+}
+
+.no-lines {
+  padding: 1rem;
+  color: #666;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+/* Current Move Card */
+.current-move-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #262421;
+  border-radius: 4px;
+  border-left: 4px solid #81b64c;
+}
+
+.move-eval-badge {
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.move-eval-badge.white-good {
+  background: #fff;
+  color: #333;
+}
+
+.move-eval-badge.black-good {
+  background: #333;
+  color: #fff;
+}
+
+.current-move-text {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #555;
+  border-top-color: #81b64c;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Moves Table */
+.moves-table-container {
+  flex: 1;
+  background: #262421;
+  border-radius: 4px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.moves-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.moves-table thead {
+  background: #1a1917;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.moves-table th {
+  padding: 0.65rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  color: #9e9e9e;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.moves-table .move-num-col {
+  width: 40px;
+  text-align: center;
+}
+
+.moves-table .white-col,
+.moves-table .black-col {
+  width: calc((100% - 40px) / 2);
+}
+
+.moves-table tbody tr {
+  border-bottom: 1px solid #3d3a37;
+}
+
+.moves-table tbody tr:hover {
+  background: #333;
+}
+
+.moves-table .move-num {
+  text-align: center;
+  color: #666;
+  font-weight: 500;
+}
+
+.moves-table .move-cell {
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-weight: 500;
+}
+
+.moves-table .move-cell:hover {
+  background: #4d4a47;
+}
+
+.moves-table .move-cell.active {
+  background: #81b64c;
+  color: #fff;
+  font-weight: 600;
+}
+
+.moves-table .move-cell.empty {
+  cursor: default;
+}
+
+.moves-table .move-cell.empty:hover {
+  background: transparent;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #3d3a37;
+  border-top-color: #81b64c;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Scrollbar styling */
+.moves-table-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.moves-table-container::-webkit-scrollbar-track {
+  background: #1a1917;
+}
+
+.moves-table-container::-webkit-scrollbar-thumb {
+  background: #4d4a47;
+  border-radius: 4px;
+}
+
+.moves-table-container::-webkit-scrollbar-thumb:hover {
+  background: #5d5a57;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .analyze-game-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .analysis-section {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .chessboard-wrapper {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .analyze-game-layout {
+    padding: 0.5rem;
+  }
+
+  .move-controls {
+    flex-wrap: wrap;
+  }
+
+  .control-btn {
+    width: 50px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+
+  .control-btn.play-btn {
+    width: 60px;
+  }
+}

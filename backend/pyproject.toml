@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = ""
+authors = ["PranavSharda <pranavsharda7475@gmail.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.122.0"
+uvicorn = {extras = ["standard"], version = "^0.38.0"}
+alembic = "^1.17.2"
+python-dotenv = "^1.2.1"
+sqlalchemy = "^2.0.0"
+pydantic-settings = "^2.0.0"
+psycopg2-binary = "^2.9.9"
+argon2-cffi = "^25.1.0"
+email-validator = "^2.0.0"
+httpx = "^0.27.0"
+chess = "^1.10.0"
+stockfish = "^3.28.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
