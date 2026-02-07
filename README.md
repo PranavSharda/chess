@@ -75,7 +75,7 @@ Set `VITE_API_URL=http://localhost:8000` in `frontend/.env` if needed.
 ## Backend
 
 - **Stack:** FastAPI, SQLAlchemy, Alembic, PostgreSQL, Argon2
-- **Config:** Copy env vars from `make env.template` into `backend/.env` and adjust (DB host, user, password, etc.)
+- **Config:** Set env vars required by `backend/core/config.py` in `backend/.env` (DB_*, JWT_*).
 
 ## Frontend
 

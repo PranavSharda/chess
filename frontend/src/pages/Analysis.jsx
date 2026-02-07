@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import api from '../services/api'
 import './Analysis.css'
 
 function Analysis({ user, onUserUpdate }) {
@@ -26,21 +27,13 @@ function Analysis({ user, onUserUpdate }) {
     setError('')
     
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/user/${user.id}/chess-com/games`
-      )
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || 'Failed to fetch games')
-      }
-      
-      const data = await response.json()
+      const response = await api.get(`/user/${user.id}/chess-com/games`)
+      const data = response.data
       setGames(data.games || [])
       setTotalGames(data.total || 0)
       setCurrentPage(1)
     } catch (err) {
-      setError(err.message || 'Failed to fetch games')
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch games')
       setGames([])
       setTotalGames(0)
     } finally {
@@ -57,21 +50,12 @@ function Analysis({ user, onUserUpdate }) {
     
     try {
       // Update user in backend (backend will verify the username)
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/user/${user.id}/chess-com`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chess_com_username: chessUsername.toLowerCase() })
-        }
+      const response = await api.patch(
+        `/user/${user.id}/chess-com`,
+        { chess_com_username: chessUsername.toLowerCase() }
       )
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || 'Failed to save username')
-      }
-      
-      const updatedUserData = await response.json()
+      const updatedUserData = response.data
       const updatedUser = { ...user, chess_com_username: updatedUserData.chess_com_username }
       onUserUpdate(updatedUser)
       localStorage.setItem('user', JSON.stringify(updatedUser))

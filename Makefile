@@ -25,6 +25,7 @@ help:
 	@echo "    make frontend.clean     - Remove node_modules and dist"
 	@echo ""
 	@echo "  Full Stack:"
+	@echo "    make start              - Start app (DB + backend + frontend)"
 	@echo "    make dev                - Start both backend and frontend"
 	@echo "    make install.all        - Install all dependencies"
 	@echo ""
@@ -123,13 +124,6 @@ db.connect:
 env.show:
 	@cat $(ENV_FILE) | grep -v PASSWORD || echo "No .env file found"
 
-env.template:
-	@echo "DB_HOST=localhost"
-	@echo "DB_PORT=5432"
-	@echo "DB_NAME=chess_db"
-	@echo "DB_USER=chess_user"
-	@echo "DB_PASSWORD=dev_password"
-
 # ============
 # Frontend
 # ============
@@ -155,6 +149,8 @@ frontend.clean:
 
 install.all: install frontend.install
 	@echo "All dependencies installed!"
+
+start: dev
 
 dev:
 	@echo "Starting database..."

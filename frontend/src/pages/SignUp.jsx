@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signUp, signIn } from '../services/api'
+import { signUp } from '../services/api'
 import './Auth.css'
 
 function SignUp({ onLogin }) {
@@ -28,13 +28,9 @@ function SignUp({ onLogin }) {
     setLoading(true)
 
     try {
-      const response = await signUp(formData)
-      // Auto-login after signup
-      const loginResponse = await signIn({
-        emailOrUsername: formData.username,
-        password: formData.password,
-      })
-      onLogin(loginResponse)
+      // signUp now returns a JWT token and user data in one call
+      const user = await signUp(formData)
+      onLogin(user)
       navigate('/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Sign up failed. Please try again.')

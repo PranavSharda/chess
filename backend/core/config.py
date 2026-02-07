@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     DB_USER: str
     DB_PASSWORD: str
 
+    # JWT settings (env only, no defaults)
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    JWT_EXPIRATION_MINUTES: int
+
     class Config:
         env_file = ".env"
 

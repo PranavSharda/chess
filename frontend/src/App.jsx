@@ -9,22 +9,29 @@ import Dashboard from './pages/Dashboard'
 import Analysis from './pages/Analysis'
 import AnalyzeGame from './pages/AnalyzeGame'
 import LogoOptions from './components/LogoOptions'
+import { logout as apiLogout, getToken } from './services/api'
 import './App.css'
 
 function App() {
   const [user, setUser] = useState(() => {
+    // Only consider user logged-in if both token and user data exist
+    const token = getToken()
     const stored = localStorage.getItem('user')
-    return stored ? JSON.parse(stored) : null
+    if (token && stored) {
+      return JSON.parse(stored)
+    }
+    return null
   })
 
   const handleLogin = (userData) => {
+    // Token is already saved by api.js signIn / signUp helpers
     setUser(userData)
     localStorage.setItem('user', JSON.stringify(userData))
   }
 
   const handleLogout = () => {
+    apiLogout()
     setUser(null)
-    localStorage.removeItem('user')
   }
 
   const handleUserUpdate = (updatedUser) => {
