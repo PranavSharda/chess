@@ -14,6 +14,32 @@ export const getToken = () => localStorage.getItem('token')
 export const setToken = (token) => localStorage.setItem('token', token)
 export const removeToken = () => localStorage.removeItem('token')
 
+/**
+ * Decode a JWT payload without verification (client-side only).
+ * Returns null if the token is missing or malformed.
+ */
+export const decodeToken = () => {
+  const token = getToken()
+  if (!token) return null
+  try {
+    const payload = token.split('.')[1]
+    return JSON.parse(atob(payload))
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Check if the stored token is expired using the exp claim (Unix seconds).
+ * Returns true if there is no token, no exp, or exp is in the past.
+ */
+export const isTokenExpired = () => {
+  const claims = decodeToken()
+  if (!claims?.exp) return true
+  const expMs = claims.exp * 1000
+  return Date.now() >= expMs
+}
+
 // ── Axios request interceptor: attach Bearer token ─────────────
 api.interceptors.request.use((config) => {
   const token = getToken()
@@ -29,8 +55,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       removeToken()
-      localStorage.removeItem('user')
-      // Only redirect if we are not already on an auth page
       if (
         !window.location.pathname.startsWith('/signin') &&
         !window.location.pathname.startsWith('/signup')
@@ -47,7 +71,6 @@ export const signUp = async (data) => {
   const response = await api.post('/user', data)
   const { access_token, user } = response.data
   setToken(access_token)
-  localStorage.setItem('user', JSON.stringify(user))
   return user
 }
 
@@ -58,7 +81,6 @@ export const signIn = async (data) => {
   })
   const { access_token, user } = response.data
   setToken(access_token)
-  localStorage.setItem('user', JSON.stringify(user))
   return user
 }
 
@@ -69,8 +91,6 @@ export const getMe = async () => {
 
 export const logout = () => {
   removeToken()
-  localStorage.removeItem('user')
 }
 
 export default api
-

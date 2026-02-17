@@ -53,7 +53,7 @@ def signup(
         lichess_id=request.lichess_id
     )
 
-    token = create_access_token(str(user.id), user.username)
+    token = create_access_token(str(user.id))
     return TokenResponse(
         access_token=token,
         token_type="bearer",
@@ -86,7 +86,7 @@ def login(
             detail="Invalid password"
         )
 
-    token = create_access_token(str(user.id), user.username)
+    token = create_access_token(str(user.id))
     return TokenResponse(
         access_token=token,
         token_type="bearer",

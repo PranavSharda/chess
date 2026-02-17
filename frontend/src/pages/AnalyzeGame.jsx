@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
+import { analyzePosition } from '../engine/stockfishAnalysis'
 import './AnalyzeGame.css'
 
 function AnalyzeGame({ user }) {
@@ -72,18 +73,14 @@ function AnalyzeGame({ user }) {
 
   const analyzeGame = useCallback(async () => {
     if (!pgn || !user) return
-    
+
+    const chessForFen = new Chess()
+    if (!chessForFen.loadPgn(pgn)) return
+    const fen = chessForFen.fen()
+
     setAnalyzing(true)
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/analysis?chess_pgn=${encodeURIComponent(pgn)}`
-      )
-      
-      if (!response.ok) {
-        throw new Error('Failed to analyze game')
-      }
-      
-      const analysisData = await response.json()
+      const analysisData = await analyzePosition(fen)
       setAnalysis(analysisData)
       setTopLines(analysisData.top_lines || [])
     } catch (err) {

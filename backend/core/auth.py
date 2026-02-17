@@ -1,7 +1,5 @@
 """JWT authentication utilities."""
 from datetime import datetime, timedelta, timezone
-from typing import Optional
-
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -14,12 +12,11 @@ from db.repositories import UserRepository
 security = HTTPBearer()
 
 
-def create_access_token(user_id: str, username: str) -> str:
-    """Create a JWT access token for the given user."""
+def create_access_token(user_id: str) -> str:
+    """Create a JWT access token for the given user. Payload contains only sub (user id), exp, iat."""
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRATION_MINUTES)
     payload = {
         "sub": user_id,
-        "username": username,
         "exp": expire,
         "iat": datetime.now(timezone.utc),
     }

@@ -40,10 +40,6 @@ function Dashboard({ user, onLogout }) {
                   <span className="info-value">{user.chess_com_username}</span>
                 </div>
               )}
-              <div className="info-item">
-                <span className="info-label">User ID</span>
-                <span className="info-value">{user.id}</span>
-              </div>
             </div>
           </div>
 

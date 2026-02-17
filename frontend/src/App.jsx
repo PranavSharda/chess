@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Header from './components/Header'
@@ -8,25 +8,49 @@ import SignIn from './pages/SignIn'
 import Dashboard from './pages/Dashboard'
 import Analysis from './pages/Analysis'
 import AnalyzeGame from './pages/AnalyzeGame'
-import LogoOptions from './components/LogoOptions'
-import { logout as apiLogout, getToken } from './services/api'
+import { logout as apiLogout, getToken, getMe, decodeToken, isTokenExpired } from './services/api'
 import './App.css'
 
 function App() {
+  // Optimistic initial state: decode JWT for user id only; full profile from getMe()
   const [user, setUser] = useState(() => {
-    // Only consider user logged-in if both token and user data exist
-    const token = getToken()
-    const stored = localStorage.getItem('user')
-    if (token && stored) {
-      return JSON.parse(stored)
-    }
-    return null
+    const claims = decodeToken()
+    if (!claims?.sub) return null
+    return { id: claims.sub }
   })
+  const [validating, setValidating] = useState(() => !!getToken())
+
+  // Validate token (expiry + backend) and fetch full user profile on app load
+  useEffect(() => {
+    const validateToken = async () => {
+      const token = getToken()
+      if (!token) {
+        setValidating(false)
+        return
+      }
+      if (isTokenExpired()) {
+        apiLogout()
+        setUser(null)
+        setValidating(false)
+        return
+      }
+      try {
+        const freshUser = await getMe()
+        setUser(freshUser)
+      } catch {
+        // Token invalid (e.g. revoked) — force logout
+        apiLogout()
+        setUser(null)
+      } finally {
+        setValidating(false)
+      }
+    }
+    validateToken()
+  }, [])
 
   const handleLogin = (userData) => {
     // Token is already saved by api.js signIn / signUp helpers
     setUser(userData)
-    localStorage.setItem('user', JSON.stringify(userData))
   }
 
   const handleLogout = () => {
@@ -36,7 +60,16 @@ function App() {
 
   const handleUserUpdate = (updatedUser) => {
     setUser(updatedUser)
-    localStorage.setItem('user', JSON.stringify(updatedUser))
+  }
+
+  if (validating) {
+    return (
+      <ThemeProvider>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <p>Loading...</p>
+        </div>
+      </ThemeProvider>
+    )
   }
 
   return (
@@ -45,7 +78,6 @@ function App() {
         <Header user={user} onLogout={handleLogout} />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/logo-options" element={<LogoOptions />} />
           <Route 
             path="/signup" 
             element={user ? <Navigate to="/dashboard" /> : <SignUp onLogin={handleLogin} />} 
@@ -73,4 +105,3 @@ function App() {
 }
 
 export default App
-

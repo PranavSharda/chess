@@ -2,11 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies including Stockfish
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
-    stockfish \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry

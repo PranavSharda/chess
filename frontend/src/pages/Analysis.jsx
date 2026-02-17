@@ -58,7 +58,6 @@ function Analysis({ user, onUserUpdate }) {
       const updatedUserData = response.data
       const updatedUser = { ...user, chess_com_username: updatedUserData.chess_com_username }
       onUserUpdate(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
       
       // Fetch games after linking username
       fetchGames()

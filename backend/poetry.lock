@@ -1146,18 +1146,6 @@ typing-extensions = {version = ">=4.10.0", markers = "python_version < \"3.13\""
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
-name = "stockfish"
-version = "3.28.0"
-description = "Wraps the open-source Stockfish chess engine for easy integration into python."
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "stockfish-3.28.0-py3-none-any.whl", hash = "sha256:e432e57112448fe1271dff402db3a4747bf00d1721815ce0a36cfa26582cf360"},
-    {file = "stockfish-3.28.0.tar.gz", hash = "sha256:8764127c00434aa85b7fca1c064800e7ea907bb3626ccd4b583f0e911b014070"},
-]
-
-[[package]]
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
@@ -1479,4 +1467,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "5eeb3e869973a6be633eabe81ecbd35337947055465a85ca57e109c3738978f4"
+content-hash = "7cf38372fceb3df59646c86c6f67d894a840aea69e19daa57d94305907279b51"

@@ -38,7 +38,7 @@ function Header({ user, onLogout }) {
               <Link to="/dashboard" className="nav-link">Dashboard</Link>
               <Link to="/analysis" className="nav-link">Analysis</Link>
               <div className="user-menu">
-                <span className="user-name">{user.username}</span>
+                <span className="user-name">{user?.username ?? ''}</span>
                 <button onClick={handleLogout} className="logout-btn">
                   Logout
                 </button>
