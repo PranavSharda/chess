@@ -45,12 +45,13 @@ def signup(
     password_salt = os.urandom(16).hex()
     password_with_salt = f"{request.password}{password_salt}"
     password_hash = ph.hash(password_with_salt)
+    lichess_id = (request.lichess_id or "").strip() or None
     user = user_repo.create(
-        username=request.username,
-        email=request.email,
+        username=request.username.strip(),
+        email=request.email.strip().lower(),
         password_hash=password_hash,
         password_salt=password_salt,
-        lichess_id=request.lichess_id
+        lichess_id=lichess_id,
     )
 
     token = create_access_token(str(user.id))

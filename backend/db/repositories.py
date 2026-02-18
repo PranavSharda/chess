@@ -1,9 +1,10 @@
 from typing import Optional, List
+from uuid import UUID
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, nulls_last
 
 from db.repository import BaseRepository
-from db.models import User
+from db.models import User, UserGame
 
 
 class UserRepository(BaseRepository[User]):
@@ -44,4 +45,38 @@ class UserRepository(BaseRepository[User]):
     def email_exists(self, email: str) -> bool:
         """Check if email already exists."""
         return self.exists(email=email)
+
+
+class UserGameRepository(BaseRepository[UserGame]):
+    """Repository for UserGame model."""
+
+    def __init__(self, session: Session):
+        super().__init__(UserGame, session)
+
+    def get_by_user_id(self, user_id: UUID, limit: int = 500, offset: int = 0) -> List[UserGame]:
+        """Get games for a user, newest first."""
+        return (
+            self.session.query(UserGame)
+            .filter(UserGame.user_id == user_id)
+            .order_by(nulls_last(UserGame.end_time.desc()))
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+
+    def count_by_user_id(self, user_id: UUID) -> int:
+        """Count games for a user."""
+        return self.session.query(UserGame).filter(UserGame.user_id == user_id).count()
+
+    def exists_chess_com_game(self, user_id: UUID, chess_com_game_uuid: str) -> bool:
+        """Check if we already have this Chess.com game for this user."""
+        return (
+            self.session.query(UserGame)
+            .filter(
+                UserGame.user_id == user_id,
+                UserGame.chess_com_game_uuid == chess_com_game_uuid,
+            )
+            .first()
+            is not None
+        )
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import './Analysis.css'
@@ -10,11 +10,14 @@ function Analysis({ user, onUserUpdate }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [linkingUsername, setLinkingUsername] = useState(false)
+  const [fetchingFromChessCom, setFetchingFromChessCom] = useState(false)
+  const [timeframe, setTimeframe] = useState('3_months')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalGames, setTotalGames] = useState(0)
   const gamesPerPage = 10
 
   const isLinked = user?.chess_com_username
+  const hasAutoFetched = useRef(false)
 
   useEffect(() => {
     if (isLinked) {
@@ -22,12 +25,22 @@ function Analysis({ user, onUserUpdate }) {
     }
   }, [isLinked, user?.chess_com_username])
 
+  // Automatically fetch past 3 months from Chess.com when landing on the page with a linked account
+  useEffect(() => {
+    if (!isLinked || hasAutoFetched.current) return
+    hasAutoFetched.current = true
+    setFetchingFromChessCom(true)
+    api.post('/games/fetch', { timeframe: '3_months', game_types: ['rapid', 'blitz', 'bullet'] })
+      .then(() => fetchGames())
+      .catch(() => { /* silent fail for auto-fetch */ })
+      .finally(() => setFetchingFromChessCom(false))
+  }, [isLinked])
+
   const fetchGames = async () => {
     setLoading(true)
     setError('')
-    
     try {
-      const response = await api.get(`/user/${user.id}/chess-com/games`)
+      const response = await api.get('/games')
       const data = response.data
       setGames(data.games || [])
       setTotalGames(data.total || 0)
@@ -38,6 +51,19 @@ function Analysis({ user, onUserUpdate }) {
       setTotalGames(0)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFetchFromChessCom = async () => {
+    setFetchingFromChessCom(true)
+    setError('')
+    try {
+      await api.post('/games/fetch', { timeframe, game_types: ['rapid', 'blitz', 'bullet'] })
+      await fetchGames()
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch from Chess.com')
+    } finally {
+      setFetchingFromChessCom(false)
     }
   }
 
@@ -185,13 +211,33 @@ function Analysis({ user, onUserUpdate }) {
               Connected as <span className="username-badge">{user.chess_com_username}</span>
             </p>
           </div>
-          <button 
-            onClick={() => fetchGames()} 
-            className="refresh-button"
-            disabled={loading}
-          >
-            {loading ? <span className="spinner"></span> : '↻'} Refresh
-          </button>
+          <div className="header-actions">
+            <select
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+              className="timeframe-select"
+              aria-label="Timeframe for fetching games"
+            >
+              <option value="3_months">Past 3 months</option>
+              <option value="1_year">Past 1 year</option>
+              <option value="5_years">Past 5 years</option>
+              <option value="10_years">Past 10 years</option>
+            </select>
+            <button
+              onClick={handleFetchFromChessCom}
+              className="fetch-button"
+              disabled={fetchingFromChessCom}
+            >
+              {fetchingFromChessCom ? <span className="spinner"></span> : '↓'} Fetch from Chess.com
+            </button>
+            <button
+              onClick={() => fetchGames()}
+              className="refresh-button"
+              disabled={loading}
+            >
+              {loading ? <span className="spinner"></span> : '↻'} Refresh
+            </button>
+          </div>
         </div>
 
         {error && <div className="error-banner">{error}</div>}

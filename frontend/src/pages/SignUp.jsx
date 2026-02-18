@@ -33,7 +33,25 @@ function SignUp({ onLogin }) {
       onLogin(user)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Sign up failed. Please try again.')
+      const data = err.response?.data
+      const detail = data?.detail
+      const status = err.response?.status
+      let message = 'Sign up failed. Please try again.'
+      if (!err.response) {
+        message = 'Cannot reach server. Is the backend running at ' + (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '?'
+      } else if (typeof detail === 'string') {
+        message = detail
+      } else if (Array.isArray(detail) && detail.length) {
+        message = detail.map((e) => e.msg || e.loc?.join('.')).join('. ')
+      } else if (data?.message && typeof data.message === 'string') {
+        message = data.message
+      } else if (status === 500) {
+        message = 'Server error. Check backend logs.'
+      } else if (status) {
+        message = `Sign up failed (${status}). ${typeof detail === 'object' && detail !== null ? JSON.stringify(detail) : ''}`
+      }
+      console.error('SignUp error', status, data)
+      setError(message)
     } finally {
       setLoading(false)
     }

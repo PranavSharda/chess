@@ -6,17 +6,20 @@
 
 .analyze-game-layout {
   display: flex;
-  max-width: 1400px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 1rem;
   gap: 1.5rem;
+  align-items: flex-start;
 }
 
-/* Board Section */
+/* Board Section - give it space so the board isn't cramped in a corner */
 .board-section {
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -44,23 +47,46 @@
   gap: 0.5rem;
   background: #262421;
   padding: 0.5rem;
-  border-radius: 4px;
+  border-radius: 6px;
+  justify-content: center;
+  width: 100%;
+  max-width: min(760px, 54vw);
 }
 
 .eval-bar-container {
-  width: 28px;
-  background: #333;
-  border-radius: 4px;
+  width: 48px;
+  background: linear-gradient(to bottom, #262421 0%, #1a1917 50%, #262421 100%);
+  border-radius: 6px;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column-reverse;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+
+.eval-bar-container::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(255,255,255,0.2);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .eval-bar-fill {
-  background: #fff;
   width: 100%;
-  transition: height 0.3s ease;
+  min-height: 4px;
+  transition: height 0.35s ease-out;
+  background: linear-gradient(to top, #81b64c 0%, #a8d080 100%);
+  box-shadow: 0 -1px 4px rgba(129, 182, 76, 0.3);
+}
+
+.eval-bar-fill.black-advantage {
+  background: linear-gradient(to bottom, #5c5a57 0%, #3d3a37 100%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .eval-number {
@@ -68,11 +94,13 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-90deg);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #666;
+  color: #ebecd0;
   white-space: nowrap;
-  text-shadow: 0 0 2px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  z-index: 2;
+  letter-spacing: 0.02em;
 }
 
 .move-controls {
@@ -109,14 +137,27 @@
   background: #6fa33e;
 }
 
+.control-btn.sync-to-game-btn {
+  background: transparent;
+  border: 1px solid #81b64c;
+  color: #81b64c;
+  font-size: 0.75rem;
+  width: auto;
+  padding: 0 0.75rem;
+}
+
+.control-btn.sync-to-game-btn:hover {
+  background: rgba(129, 182, 76, 0.2);
+}
+
 /* Analysis Section */
 .analysis-section {
-  flex: 1;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  min-width: 340px;
-  max-width: 420px;
+  width: 380px;
+  max-width: 100%;
 }
 
 .game-header {
@@ -249,6 +290,19 @@
   color: #666;
   text-align: center;
   font-size: 0.85rem;
+}
+.no-lines .line-eval-small {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.no-lines .no-lines-msg {
+  display: block;
+  color: #888;
+  font-size: 0.8rem;
+}
+.no-lines.analysis-error {
+  color: #c33;
 }
 
 /* Current Move Card */
@@ -419,6 +473,10 @@
 @media (max-width: 1000px) {
   .analyze-game-layout {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .board-section {
     align-items: center;
   }
 
@@ -429,6 +487,7 @@
 
   .chessboard-wrapper {
     justify-content: center;
+    max-width: 100%;
   }
 }
 

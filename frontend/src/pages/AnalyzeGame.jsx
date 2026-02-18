@@ -1,12 +1,17 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { analyzePosition } from '../engine/stockfishAnalysis'
 import './AnalyzeGame.css'
 
+const MIN_BOARD = 280
+const MAX_BOARD = 760
+
 function AnalyzeGame({ user }) {
   const navigate = useNavigate()
+  const boardWrapperRef = useRef(null)
+  const [boardSize, setBoardSize] = useState(400)
   const [game, setGame] = useState(null)
   const [chess, setChess] = useState(() => new Chess())
   const [gamePosition, setGamePosition] = useState('start')
@@ -15,8 +20,25 @@ function AnalyzeGame({ user }) {
   const [gameInfo, setGameInfo] = useState(null)
   const [analysis, setAnalysis] = useState(null)
   const [analyzing, setAnalyzing] = useState(false)
+  const [analysisError, setAnalysisError] = useState(null)
   const [pgn, setPgn] = useState('')
   const [topLines, setTopLines] = useState([])
+  const [selectedSquare, setSelectedSquare] = useState(null)
+
+  useEffect(() => {
+    const el = boardWrapperRef.current
+    if (!el) return
+    const updateSize = () => {
+      const w = el.clientWidth
+      const available = w - 44 - 16
+      const size = Math.max(MIN_BOARD, Math.min(MAX_BOARD, available))
+      setBoardSize(size)
+    }
+    updateSize()
+    const ro = new ResizeObserver(updateSize)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [game])
 
   useEffect(() => {
     const gameData = sessionStorage.getItem('analyzeGame')
@@ -71,30 +93,39 @@ function AnalyzeGame({ user }) {
     }
   }
 
-  const analyzeGame = useCallback(async () => {
-    if (!pgn || !user) return
+  const fenToAnalyze = useMemo(() => {
+    if (gamePosition === 'start' || !gamePosition) {
+      return new Chess().fen()
+    }
+    return gamePosition
+  }, [gamePosition])
 
-    const chessForFen = new Chess()
-    if (!chessForFen.loadPgn(pgn)) return
-    const fen = chessForFen.fen()
+  const analyzeGame = useCallback(async () => {
+    if (!fenToAnalyze || !user) return
 
     setAnalyzing(true)
+    setAnalysisError(null)
     try {
-      const analysisData = await analyzePosition(fen)
+      const analysisData = await analyzePosition(fenToAnalyze)
       setAnalysis(analysisData)
       setTopLines(analysisData.top_lines || [])
     } catch (err) {
       console.error('Error analyzing game:', err)
+      setAnalysisError(err?.message || 'Engine failed to load')
+      setAnalysis(null)
+      setTopLines([])
     } finally {
       setAnalyzing(false)
     }
-  }, [pgn, user])
+  }, [fenToAnalyze, user])
 
   useEffect(() => {
-    if (pgn && game && user) {
+    if (!pgn || !game || !user) return
+    const t = setTimeout(() => {
       analyzeGame()
-    }
-  }, [pgn, game, user, analyzeGame])
+    }, 150)
+    return () => clearTimeout(t)
+  }, [pgn, game, user, fenToAnalyze, analyzeGame])
 
   const goToMove = useCallback((index) => {
     if (index < -1 || index >= moveHistory.length) return
@@ -111,12 +142,14 @@ function AnalyzeGame({ user }) {
     setCurrentMoveIndex(index)
     setGamePosition(index === -1 ? 'start' : tempChess.fen())
     setChess(tempChess)
+    setSelectedSquare(null)
   }, [moveHistory])
 
   const goToStart = useCallback(() => {
     setCurrentMoveIndex(-1)
     setGamePosition('start')
     setChess(new Chess())
+    setSelectedSquare(null)
   }, [])
 
   const goToEnd = useCallback(() => {
@@ -135,23 +168,125 @@ function AnalyzeGame({ user }) {
     }
   }, [currentMoveIndex, moveHistory, goToMove])
 
-  // Handle piece drop - only allow legal moves
+  // Current board FEN for display (always a string so dragging works reliably)
+  const boardPosition = useMemo(() => {
+    if (gamePosition === 'start' || !gamePosition) return new Chess().fen()
+    return gamePosition
+  }, [gamePosition])
+
+  // True when the board position differs from the game at currentMoveIndex (user explored)
+  const isExploringBranch = useMemo(() => {
+    if (moveHistory.length === 0) return false
+    const gameChess = new Chess()
+    for (let i = 0; i <= currentMoveIndex && i < moveHistory.length; i++) {
+      if (moveHistory[i]) gameChess.move(moveHistory[i])
+    }
+    const gameFen = gameChess.fen()
+    return boardPosition !== gameFen
+  }, [boardPosition, currentMoveIndex, moveHistory])
+
+  const syncToGamePosition = useCallback(() => {
+    goToMove(currentMoveIndex)
+  }, [currentMoveIndex, goToMove])
+
+  // Legal moves: Chess.com style – light grey translucent circles (dot on empty, halo on capture)
+  const customSquareStyles = useMemo(() => {
+    try {
+      if (!selectedSquare || !chess || typeof chess.game_over !== 'function' || chess.game_over()) return {}
+      const moves = chess.moves({ square: selectedSquare, verbose: true })
+      if (!Array.isArray(moves) || !moves.length) return {}
+      const styles = {
+        [selectedSquare]: {
+          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 65%)',
+          borderRadius: '4px',
+        },
+      }
+      moves.forEach((m) => {
+        if (!m || !m.to) return
+        const isCapture = chess.get && chess.get(m.to)
+        styles[m.to] = {
+          background: isCapture
+            ? 'radial-gradient(circle at center, rgba(200, 200, 200, 0.35) 0%, transparent 50%)'
+            : 'radial-gradient(circle at center, rgba(200, 200, 200, 0.3) 0%, transparent 45%)',
+          borderRadius: '4px',
+        }
+      })
+      return styles
+    } catch {
+      return {}
+    }
+  }, [selectedSquare, boardPosition])
+
+  const onPieceClick = useCallback((piece, square) => {
+    try {
+      if (!piece || typeof piece !== 'string' || !chess || typeof chess.turn !== 'function') return
+      const turn = chess.turn()
+      const pieceColor = piece.startsWith('w') ? 'w' : 'b'
+      if (pieceColor !== turn) {
+        setSelectedSquare(null)
+        return
+      }
+      setSelectedSquare((prev) => (prev === square ? null : square))
+    } catch {
+      setSelectedSquare(null)
+    }
+  }, [chess])
+
+  const onSquareClick = useCallback((square, piece) => {
+    try {
+      if (!chess || typeof chess.turn !== 'function') return
+      if (!selectedSquare) {
+        if (piece && typeof piece === 'string') {
+          const turn = chess.turn()
+          const pieceColor = piece.startsWith('w') ? 'w' : 'b'
+          if (pieceColor === turn) setSelectedSquare(square)
+        }
+        return
+      }
+      const moves = chess.moves({ square: selectedSquare, verbose: true })
+      if (!Array.isArray(moves)) return
+      const targetMove = moves.find((m) => m && m.to === square)
+      if (targetMove) {
+        const move = chess.move({ from: selectedSquare, to: square, promotion: 'q' })
+        if (move) {
+          setGamePosition(chess.fen())
+          setSelectedSquare(null)
+        }
+      } else {
+        const turn = chess.turn()
+        setSelectedSquare(piece && typeof piece === 'string' && piece.startsWith(turn === 'w' ? 'w' : 'b') ? square : null)
+      }
+    } catch {
+      setSelectedSquare(null)
+    }
+  }, [selectedSquare, chess])
+
+  // Handle piece drop - allow legal moves from current position (exploration)
   const onDrop = (sourceSquare, targetSquare) => {
     try {
       const move = chess.move({
         from: sourceSquare,
         to: targetSquare,
-        promotion: 'q' // always promote to queen for simplicity
+        promotion: 'q',
       })
 
       if (move === null) return false
 
       setGamePosition(chess.fen())
+      setSelectedSquare(null)
       return true
     } catch (error) {
       return false
     }
   }
+
+  const onPieceDragBegin = useCallback((_piece, sourceSquare) => {
+    setSelectedSquare(sourceSquare)
+  }, [])
+
+  const onPieceDragEnd = useCallback(() => {
+    setSelectedSquare(null)
+  }, [])
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -279,10 +414,10 @@ function AnalyzeGame({ user }) {
             </span>
           </div>
           
-          <div className="chessboard-wrapper">
+          <div className="chessboard-wrapper" ref={boardWrapperRef}>
             <div className="eval-bar-container">
               <div 
-                className="eval-bar-fill" 
+                className={`eval-bar-fill ${evalBarHeight < 50 ? 'black-advantage' : ''}`}
                 style={{ height: `${evalBarHeight}%` }}
               />
               <span className="eval-number">
@@ -290,10 +425,16 @@ function AnalyzeGame({ user }) {
               </span>
             </div>
             <Chessboard
-              position={gamePosition}
+              position={boardPosition}
               onPieceDrop={onDrop}
-              boardWidth={500}
+              onPieceClick={onPieceClick}
+              onSquareClick={onSquareClick}
+              onPieceDragBegin={onPieceDragBegin}
+              onPieceDragEnd={onPieceDragEnd}
+              arePiecesDraggable={true}
+              boardWidth={boardSize}
               boardOrientation={gameInfo.isUserWhite ? 'white' : 'black'}
+              customSquareStyles={customSquareStyles}
               customBoardStyle={{
                 borderRadius: '4px'
               }}
@@ -324,6 +465,16 @@ function AnalyzeGame({ user }) {
             <button className="control-btn" onClick={goToEnd} title="Last move (↓)">
               ⏭
             </button>
+            {isExploringBranch && (
+              <button
+                type="button"
+                className="control-btn sync-to-game-btn"
+                onClick={syncToGamePosition}
+                title="Back to game position"
+              >
+                Sync
+              </button>
+            )}
           </div>
         </div>
 
@@ -363,8 +514,20 @@ function AnalyzeGame({ user }) {
                 </div>
               ))}
               
-              {!analyzing && topLines.length === 0 && (
-                <div className="no-lines">No analysis available</div>
+              {!analyzing && topLines.length === 0 && !analysisError && (
+                <div className="no-lines">
+                  {analysis?.evaluation != null ? (
+                    <>
+                      <span className="line-eval-small">{formatEval(analysis.evaluation)}</span>
+                      <span className="no-lines-msg">No alternative lines for this position</span>
+                    </>
+                  ) : (
+                    'No analysis available'
+                  )}
+                </div>
+              )}
+              {analysisError && (
+                <div className="no-lines analysis-error">{analysisError}</div>
               )}
             </div>
           </div>

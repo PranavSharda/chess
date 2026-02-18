@@ -10,7 +10,7 @@ from db.base import Base  # <-- your Base
 from core.config import settings  # <-- loads .env
 
 # Import all models so Alembic can detect them
-from db.models import User  # noqa: F401
+from db.models import User, UserGame  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
