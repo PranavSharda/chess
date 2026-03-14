@@ -11,7 +11,7 @@ function Home() {
             Every Move <span className="gradient-text">Matters</span>
           </h1>
           <p className="hero-subtitle">
-            Master chess tactics, study openings, and improve your game. 
+            Master chess tactics, study openings, and improve your game.
             In chess, every position demands the right move—no matter how forced.
           </p>
           <div className="hero-actions">
@@ -39,24 +39,29 @@ function Home() {
           <h2 className="section-title">Why Choose Chess Vector?</h2>
           <div className="features-grid">
             <div className="feature-card">
-              <div className="feature-icon">🎯</div>
-              <h3>Practice Anytime</h3>
-              <p>Play games, solve puzzles, and analyze positions whenever you want.</p>
+              <div className="feature-icon">&#x1F50D;</div>
+              <h3>Deep Analysis</h3>
+              <p>Analyze every move with Stockfish engine running in your browser at depth 18.</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">📊</div>
-              <h3>Track Progress</h3>
-              <p>Monitor your rating, review your games, and see your improvement over time.</p>
+              <div className="feature-icon">&#x1F9E9;</div>
+              <h3>Your Puzzles</h3>
+              <p>Auto-generated puzzles from your own games — practice your real weaknesses.</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">🏆</div>
-              <h3>Compete</h3>
-              <p>Join tournaments, challenge friends, and climb the leaderboards.</p>
+              <div className="feature-icon">&#x1F4AC;</div>
+              <h3>AI Coach</h3>
+              <p>Describe what you want to practice and get personalized puzzle sets served to you.</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">🔗</div>
-              <h3>Lichess Integration</h3>
-              <p>Connect your Lichess account and sync your games automatically.</p>
+              <div className="feature-icon">&#x1F4C8;</div>
+              <h3>Trend Insights</h3>
+              <p>Track your rating, win rate, blunder frequency, and opening accuracy over time.</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">&#x1F517;</div>
+              <h3>Chess.com Sync</h3>
+              <p>Connect your Chess.com account and import your games automatically.</p>
             </div>
           </div>
         </div>
@@ -66,4 +71,3 @@ function Home() {
 }
 
 export default Home
-

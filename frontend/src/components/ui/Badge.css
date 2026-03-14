@@ -1,0 +1,30 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-win {
+  background: var(--color-win);
+  color: white;
+}
+
+.badge-loss {
+  background: var(--color-loss);
+  color: white;
+}
+
+.badge-draw {
+  background: var(--color-draw);
+  color: white;
+}
+
+.badge-info {
+  background: var(--primary-color);
+  color: white;
+}

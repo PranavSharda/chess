@@ -1,22 +1,18 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signIn } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
+import { signIn } from '../services/auth'
 import './Auth.css'
 
-function SignIn({ onLogin }) {
-  const [formData, setFormData] = useState({
-    emailOrUsername: '',
-    password: '',
-  })
+function SignIn() {
+  const [formData, setFormData] = useState({ emailOrUsername: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
     setError('')
   }
 
@@ -24,10 +20,9 @@ function SignIn({ onLogin }) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
-      const response = await signIn(formData)
-      onLogin(response)
+      const user = await signIn(formData)
+      login(user)
       navigate('/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid credentials. Please try again.')
@@ -41,9 +36,7 @@ function SignIn({ onLogin }) {
       <div className="auth-card">
         <h1>Welcome Back</h1>
         <p className="subtitle">Sign in to your account</p>
-
         {error && <div className="error-message">{error}</div>}
-
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="emailOrUsername">Email or Username</label>
@@ -57,7 +50,6 @@ function SignIn({ onLogin }) {
               placeholder="Enter your email or username"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
@@ -70,12 +62,10 @@ function SignIn({ onLogin }) {
               placeholder="Enter your password"
             />
           </div>
-
           <button type="submit" className="submit-button" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
         <p className="auth-link">
           Don't have an account? <Link to="/signup">Sign up</Link>
         </p>
@@ -85,5 +75,3 @@ function SignIn({ onLogin }) {
 }
 
 export default SignIn
-
-

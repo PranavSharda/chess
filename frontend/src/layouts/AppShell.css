@@ -1,0 +1,27 @@
+.appshell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.appshell-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-xl);
+  margin-left: var(--sidebar-width);
+  background: var(--bg-secondary);
+  transition: margin-left 0.3s ease;
+}
+
+.appshell-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .appshell-main {
+    margin-left: 56px;
+    padding: var(--space-md);
+  }
+}

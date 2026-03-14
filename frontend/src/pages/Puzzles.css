@@ -1,0 +1,58 @@
+.puzzles-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.puzzles-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.stat-card {
+  text-align: center;
+  padding: var(--space-lg) !important;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: var(--space-xs);
+}
+
+.coming-soon-section {
+  text-align: center;
+  padding: var(--space-3xl) var(--space-lg);
+  color: var(--text-muted);
+}
+
+.coming-soon-section .coming-soon-icon {
+  font-size: 64px;
+  margin-bottom: var(--space-lg);
+  opacity: 0.5;
+}
+
+.coming-soon-section h2 {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.coming-soon-section p {
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .puzzles-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

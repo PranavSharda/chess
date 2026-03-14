@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signUp } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
+import { signUp } from '../services/auth'
 import './Auth.css'
 
-function SignUp({ onLogin }) {
+function SignUp() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -13,12 +14,10 @@ function SignUp({ onLogin }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
     setError('')
   }
 
@@ -26,11 +25,9 @@ function SignUp({ onLogin }) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
-      // signUp now returns a JWT token and user data in one call
       const user = await signUp(formData)
-      onLogin(user)
+      login(user)
       navigate('/dashboard')
     } catch (err) {
       const data = err.response?.data
@@ -48,9 +45,8 @@ function SignUp({ onLogin }) {
       } else if (status === 500) {
         message = 'Server error. Check backend logs.'
       } else if (status) {
-        message = `Sign up failed (${status}). ${typeof detail === 'object' && detail !== null ? JSON.stringify(detail) : ''}`
+        message = `Sign up failed (${status}).`
       }
-      console.error('SignUp error', status, data)
       setError(message)
     } finally {
       setLoading(false)
@@ -62,9 +58,7 @@ function SignUp({ onLogin }) {
       <div className="auth-card">
         <h1>Create Account</h1>
         <p className="subtitle">Make your move and join the community</p>
-
         {error && <div className="error-message">{error}</div>}
-
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="username">Username</label>
@@ -78,7 +72,6 @@ function SignUp({ onLogin }) {
               placeholder="Choose a username"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -91,7 +84,6 @@ function SignUp({ onLogin }) {
               placeholder="your.email@example.com"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
@@ -105,7 +97,6 @@ function SignUp({ onLogin }) {
               minLength={6}
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="lichess_id">Lichess ID (Optional)</label>
             <input
@@ -117,12 +108,10 @@ function SignUp({ onLogin }) {
               placeholder="Your Lichess username"
             />
           </div>
-
           <button type="submit" className="submit-button" disabled={loading}>
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
-
         <p className="auth-link">
           Already have an account? <Link to="/signin">Sign in</Link>
         </p>
@@ -132,4 +121,3 @@ function SignUp({ onLogin }) {
 }
 
 export default SignUp
-
