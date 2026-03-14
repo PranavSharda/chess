@@ -53,6 +53,10 @@ class UserGameRepository(BaseRepository[UserGame]):
     def __init__(self, session: Session):
         super().__init__(UserGame, session)
 
+    def get_by_game_id(self, game_id: UUID) -> Optional[UserGame]:
+        """Get a single game by its primary key."""
+        return self.session.query(UserGame).filter(UserGame.game_id == game_id).first()
+
     def get_by_user_id(self, user_id: UUID, limit: int = 500, offset: int = 0) -> List[UserGame]:
         """Get games for a user, newest first."""
         return (
@@ -79,4 +83,16 @@ class UserGameRepository(BaseRepository[UserGame]):
             .first()
             is not None
         )
+
+    def get_existing_chess_com_uuids(self, user_id: UUID) -> set[str]:
+        """Return all Chess.com game UUIDs already stored for this user."""
+        rows = (
+            self.session.query(UserGame.chess_com_game_uuid)
+            .filter(
+                UserGame.user_id == user_id,
+                UserGame.chess_com_game_uuid.isnot(None),
+            )
+            .all()
+        )
+        return {r[0] for r in rows}
 

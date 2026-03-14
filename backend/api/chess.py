@@ -1,3 +1,8 @@
+import logging
+import sys
+from uuid import UUID
+
+from cachetools import TTLCache
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import get_current_user
@@ -6,6 +11,11 @@ from db.repositories import UserGameRepository
 from db.dependencies import get_user_game_repository
 from schema import FetchGamesRequest
 from services.chess_com import fetch_chess_com_games
+
+logger = logging.getLogger(__name__)
+
+# Cache fetch results per (user_id, username, timeframe, game_types) for 5 min
+_fetch_cache: TTLCache = TTLCache(maxsize=128, ttl=300)
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -40,6 +50,19 @@ def list_games(
     }
 
 
+@router.get("/{game_id}")
+def get_game(
+    game_id: UUID,
+    current_user: User = Depends(get_current_user),
+    user_game_repo: UserGameRepository = Depends(get_user_game_repository),
+):
+    """Return a single game by ID, if it belongs to the current user."""
+    game = user_game_repo.get_by_game_id(game_id)
+    if not game or game.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Game not found")
+    return _game_to_response(game)
+
+
 @router.post("/fetch")
 def fetch_games(
     request: FetchGamesRequest = FetchGamesRequest(),
@@ -55,16 +78,26 @@ def fetch_games(
         )
     username = username.lower()
 
+    cache_key = (
+        str(current_user.id),
+        username,
+        request.timeframe,
+        tuple(sorted(request.game_types or [])),
+    )
+    if cache_key in _fetch_cache:
+        return _fetch_cache[cache_key]
+
     raw_games = fetch_chess_com_games(
         username=username,
         timeframe=request.timeframe,
         game_types=request.game_types,
     )
 
+    existing_uuids = user_game_repo.get_existing_chess_com_uuids(current_user.id)
     added = 0
     for g in raw_games:
         ccuuid = g.get("chess_com_game_uuid")
-        if ccuuid and user_game_repo.exists_chess_com_game(current_user.id, ccuuid):
+        if ccuuid and ccuuid in existing_uuids:
             continue
         user_game_repo.create(
             user_id=current_user.id,
@@ -82,8 +115,10 @@ def fetch_games(
         )
         added += 1
 
-    return {
+    result = {
         "fetched": len(raw_games),
         "added": added,
         "message": f"Added {added} new games (total fetched: {len(raw_games)}).",
     }
+    _fetch_cache[cache_key] = result
+    return result
