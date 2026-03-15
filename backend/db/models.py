@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, ForeignKey, BigInteger
+from sqlalchemy import Column, String, DateTime, Text, ForeignKey, BigInteger, JSON, Float, Integer
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -37,3 +37,9 @@ class UserGame(Base):
     black_username = Column(String, nullable=True)
     white_result = Column(String, nullable=True)
     black_result = Column(String, nullable=True)
+    analysed_game = Column(JSON, nullable=True)
+    white_accuracy = Column(Float, nullable=True)
+    black_accuracy = Column(Float, nullable=True)
+    user_blunder_count = Column(Integer, nullable=True)
+    white_rating = Column(Integer, nullable=True)
+    black_rating = Column(Integer, nullable=True)

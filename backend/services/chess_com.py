@@ -15,11 +15,14 @@ ALLOWED_TIME_CLASSES = frozenset({"rapid", "blitz", "bullet"})
 BASE_URL = "https://api.chess.com/pub/player"
 
 
+from schema import ChessComGame
+
+
 def fetch_chess_com_games(
     username: str,
     timeframe: Literal["3_months", "1_year", "5_years", "10_years"] = "3_months",
     game_types: List[str] | None = None,
-) -> List[dict]:
+) -> List[ChessComGame]:
     """
     Fetch games from Chess.com API for the given username and timeframe.
     Only rapid, blitz, and bullet games are included.
@@ -32,7 +35,7 @@ def fetch_chess_com_games(
 
     months_to_fetch = TIMEFRAME_MONTHS.get(timeframe, 3)
     now = datetime.utcnow()
-    games: List[dict] = []
+    games: List[ChessComGame] = []
 
     with httpx.Client(timeout=30.0) as client:
         year, month = now.year, now.month
@@ -52,22 +55,24 @@ def fetch_chess_com_games(
                             continue
                         white = g.get("white") or {}
                         black = g.get("black") or {}
-                        games.append({
-                            "pgn": g.get("pgn") or "",
-                            "tcn": g.get("tcn"),
-                            "chess_com_username": username,
-                            "chess_com_game_uuid": g.get("uuid"),
-                            "end_time": g.get("end_time"),
-                            "time_class": time_class,
-                            "white_username": white.get("username"),
-                            "black_username": black.get("username"),
-                            "white_result": white.get("result"),
-                            "black_result": black.get("result"),
-                            "time_control": g.get("time_control"),
-                            "white": white,
-                            "black": black,
-                            "uuid": g.get("uuid"),
-                        })
+                        games.append(ChessComGame(
+                            pgn=g.get("pgn") or "",
+                            tcn=g.get("tcn"),
+                            chess_com_username=username,
+                            chess_com_game_uuid=g.get("uuid"),
+                            end_time=g.get("end_time"),
+                            time_class=time_class,
+                            white_username=white.get("username"),
+                            black_username=black.get("username"),
+                            white_result=white.get("result"),
+                            black_result=black.get("result"),
+                            time_control=g.get("time_control"),
+                            white=white,
+                            black=black,
+                            uuid=g.get("uuid"),
+                            white_rating=white.get('rating'),
+                            black_rating=black.get('rating')
+                        ))
             except httpx.HTTPError:
                 pass
 

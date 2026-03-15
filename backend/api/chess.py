@@ -9,7 +9,7 @@ from core.auth import get_current_user
 from db.models import User, UserGame
 from db.repositories import UserGameRepository
 from db.dependencies import get_user_game_repository
-from schema import FetchGamesRequest
+from schema import FetchGamesRequest, GameResponse, ListGamesResponse, GamePlayer
 from services.chess_com import fetch_chess_com_games
 
 logger = logging.getLogger(__name__)
@@ -20,23 +20,23 @@ _fetch_cache: TTLCache = TTLCache(maxsize=128, ttl=300)
 router = APIRouter(prefix="/games", tags=["games"])
 
 
-def _game_to_response(g: UserGame) -> dict:
+def _game_to_response(g: UserGame) -> GameResponse:
     """Shape a UserGame for the frontend."""
-    return {
-        "game_id": str(g.game_id),
-        "uuid": g.chess_com_game_uuid or str(g.game_id),
-        "pgn": g.pgn,
-        "tcn": g.tcn,
-        "chess_com_username": g.chess_com_username,
-        "end_time": g.end_time,
-        "time_control": g.time_control or g.time_class,
-        "time_class": g.time_class,
-        "white": {"username": g.white_username, "result": g.white_result} if g.white_username else {},
-        "black": {"username": g.black_username, "result": g.black_result} if g.black_username else {},
-    }
+    return GameResponse(
+        game_id=str(g.game_id),
+        uuid=g.chess_com_game_uuid or str(g.game_id),
+        pgn=g.pgn,
+        tcn=g.tcn,
+        chess_com_username=g.chess_com_username,
+        end_time=g.end_time,
+        time_control=g.time_control or g.time_class,
+        time_class=g.time_class,
+        white=GamePlayer(username=g.white_username, result=g.white_result, rating=g.white_rating) if g.white_username and g.white_result else None,
+        black=GamePlayer(username=g.black_username, result=g.black_result, rating=g.black_rating) if g.black_username and g.black_result else None,
+    )
 
 
-@router.get("")
+@router.get("", response_model=ListGamesResponse)
 def list_games(
     current_user: User = Depends(get_current_user),
     user_game_repo: UserGameRepository = Depends(get_user_game_repository),
@@ -44,13 +44,13 @@ def list_games(
     """Return all stored games for the current user."""
     games = user_game_repo.get_by_user_id(current_user.id, limit=1000)
     total = user_game_repo.count_by_user_id(current_user.id)
-    return {
-        "games": [_game_to_response(g) for g in games],
-        "total": total,
-    }
+    return ListGamesResponse(
+        games=[_game_to_response(g) for g in games],
+        total=total,
+    )
 
 
-@router.get("/{game_id}")
+@router.get("/{game_id}", response_model=GameResponse)
 def get_game(
     game_id: UUID,
     current_user: User = Depends(get_current_user),
@@ -95,23 +95,25 @@ def fetch_games(
 
     existing_uuids = user_game_repo.get_existing_chess_com_uuids(current_user.id)
     added = 0
-    for g in raw_games:
-        ccuuid = g.get("chess_com_game_uuid")
+    for game in raw_games:
+        ccuuid = game.chess_com_game_uuid
         if ccuuid and ccuuid in existing_uuids:
             continue
         user_game_repo.create(
             user_id=current_user.id,
-            pgn=g.get("pgn") or "",
-            tcn=g.get("tcn"),
-            chess_com_username=g.get("chess_com_username") or username,
+            pgn=game.pgn,
+            tcn=game.tcn,
+            chess_com_username=game.chess_com_username or username,
             chess_com_game_uuid=ccuuid,
-            end_time=g.get("end_time"),
-            time_class=g.get("time_class"),
-            time_control=g.get("time_control"),
-            white_username=g.get("white_username"),
-            black_username=g.get("black_username"),
-            white_result=g.get("white_result"),
-            black_result=g.get("black_result"),
+            end_time=game.end_time,
+            time_class=game.time_class,
+            time_control=game.time_control,
+            white_username=game.white_username,
+            black_username=game.black_username,
+            white_result=game.white_result,
+            black_result=game.black_result,
+            white_rating=game.white_rating,
+            black_rating=game.black_rating,
         )
         added += 1
 
