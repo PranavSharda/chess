@@ -84,14 +84,6 @@ function GameAnalysis() {
             bottomPlayer={bottomPlayer}
             boardWrapperRef={boardWrapperRef}
           />
-          <MoveControls
-            onFirst={chessGame.goToStart}
-            onPrev={chessGame.goBack}
-            onNext={chessGame.goForward}
-            onLast={chessGame.goToEnd}
-            showSync={chessGame.isExploring}
-            onSync={chessGame.syncToGameMove}
-          />
         </div>
 
         <div className="analysis-section">
@@ -115,6 +107,15 @@ function GameAnalysis() {
             moveHistory={chessGame.moveHistory}
             currentMoveIndex={chessGame.currentMoveIndex}
             onMoveClick={chessGame.goToMove}
+          />
+
+          <MoveControls
+            onFirst={chessGame.goToStart}
+            onPrev={chessGame.goBack}
+            onNext={chessGame.goForward}
+            onLast={chessGame.goToEnd}
+            showSync={chessGame.isExploring}
+            onSync={chessGame.syncToGameMove}
           />
         </div>
       </div>

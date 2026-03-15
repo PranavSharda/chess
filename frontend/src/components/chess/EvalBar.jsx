@@ -3,7 +3,7 @@ import { formatEval } from '../../utils/formatters'
 import './EvalBar.css'
 
 function EvalBar({ evaluation }) {
-  const height = useMemo(() => {
+  const whitePercent = useMemo(() => {
     if (!evaluation) return 50
     const val = evaluation.type === 'cp'
       ? evaluation.value / 100
@@ -12,13 +12,18 @@ function EvalBar({ evaluation }) {
     return 50 + (clamped * 10)
   }, [evaluation])
 
+  const evalText = formatEval(evaluation)
+  const isWhiteBetter = whitePercent >= 50
+
   return (
     <div className="eval-bar-container">
       <div
-        className={`eval-bar-fill ${height < 50 ? 'black-advantage' : ''}`}
-        style={{ height: `${height}%` }}
+        className={`eval-bar-fill ${whitePercent < 50 ? 'black-advantage' : ''}`}
+        style={{ height: `${whitePercent}%` }}
       />
-      <span className="eval-number">{formatEval(evaluation)}</span>
+      <span className={`eval-number ${isWhiteBetter ? 'eval-bottom' : 'eval-top'}`}>
+        {evalText}
+      </span>
     </div>
   )
 }

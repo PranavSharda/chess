@@ -72,6 +72,39 @@ make services.down
 
 API docs: `http://localhost:8000/docs`
 
+## Database Models
+
+### `users`
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | UUID | PK, auto-generated |
+| username | String | unique, not null |
+| email | String | unique, not null |
+| password_hash | String | not null |
+| password_salt | String | not null |
+| lichess_id | String | nullable |
+| chess_com_username | String | nullable |
+| created_at | DateTime | not null, default utcnow |
+
+### `user_games`
+| Column | Type | Constraints |
+|--------|------|-------------|
+| game_id | UUID | PK, auto-generated |
+| user_id | UUID | FK → users.id, CASCADE, not null |
+| pgn | Text | not null |
+| tcn | Text | nullable |
+| chess_com_username | String | not null |
+| chess_com_game_uuid | String | nullable, unique with user_id |
+| end_time | BigInteger | nullable (unix timestamp) |
+| time_class | String | nullable (rapid/blitz/bullet) |
+| time_control | String | nullable (e.g. "600+5") |
+| white_username | String | nullable |
+| black_username | String | nullable |
+| white_result | String | nullable (win/checkmated/resigned/timeout/etc) |
+| black_result | String | nullable |
+
+**Indexes:** `ix_user_games_user_id`, unique composite on `(user_id, chess_com_game_uuid)`
+
 ## Key Patterns
 
 - **Auth flow:** JWT in localStorage, Axios request interceptor attaches Bearer token, 401 response triggers auto-logout

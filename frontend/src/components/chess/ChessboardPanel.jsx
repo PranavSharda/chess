@@ -18,11 +18,14 @@ function ChessboardPanel({
   bottomPlayer,
   boardWrapperRef,
 }) {
+  const topIsBlack = orientation === 'white'
+
   return (
     <div className="board-panel">
       <div className="player-bar opponent">
+        <span className="piece-icon">{topIsBlack ? '♟' : '♙'}</span>
         <span className="player-name">{topPlayer?.username || 'Unknown'}</span>
-        <span className="player-rating">({topPlayer?.rating || '?'})</span>
+        {topPlayer?.rating && <span className="player-rating">({topPlayer.rating})</span>}
       </div>
 
       <div className="chessboard-wrapper" ref={boardWrapperRef}>
@@ -38,15 +41,16 @@ function ChessboardPanel({
           boardWidth={boardSize}
           boardOrientation={orientation}
           customSquareStyles={customSquareStyles}
-          customBoardStyle={{ borderRadius: '4px' }}
-          customDarkSquareStyle={{ backgroundColor: 'var(--board-dark)' }}
-          customLightSquareStyle={{ backgroundColor: 'var(--board-light)' }}
+          customBoardStyle={{ borderRadius: '2px' }}
+          customDarkSquareStyle={{ backgroundColor: '#779952' }}
+          customLightSquareStyle={{ backgroundColor: '#edeed1' }}
         />
       </div>
 
       <div className="player-bar user">
+        <span className="piece-icon">{topIsBlack ? '♙' : '♟'}</span>
         <span className="player-name">{bottomPlayer?.username || 'Unknown'}</span>
-        <span className="player-rating">({bottomPlayer?.rating || '?'})</span>
+        {bottomPlayer?.rating && <span className="player-rating">({bottomPlayer.rating})</span>}
       </div>
     </div>
   )
