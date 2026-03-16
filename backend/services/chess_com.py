@@ -15,25 +15,25 @@ ALLOWED_TIME_CLASSES = frozenset({"rapid", "blitz", "bullet"})
 BASE_URL = "https://api.chess.com/pub/player"
 
 
-from schema import ChessComGame
+from schema import ChessComGame, Timeframe, GameType
 
 
 def fetch_chess_com_games(
     username: str,
-    timeframe: Literal["3_months", "1_year", "5_years", "10_years"] = "3_months",
-    game_types: List[str] | None = None,
+    timeframe: Timeframe = Timeframe.THREE_MONTHS,
+    game_types: List[GameType] | None = None,
 ) -> List[ChessComGame]:
     """
     Fetch games from Chess.com API for the given username and timeframe.
     Only rapid, blitz, and bullet games are included.
     """
     if game_types is None:
-        game_types = ["rapid", "blitz", "bullet"]
-    allowed = ALLOWED_TIME_CLASSES & set(game_types)
+        game_types = [GameType.RAPID, GameType.BLITZ, GameType.BULLET]
+    allowed = ALLOWED_TIME_CLASSES & set([gt.value for gt in game_types])
     if not allowed:
         allowed = ALLOWED_TIME_CLASSES
 
-    months_to_fetch = TIMEFRAME_MONTHS.get(timeframe, 3)
+    months_to_fetch = TIMEFRAME_MONTHS.get(timeframe.value, 3)
     now = datetime.utcnow()
     games: List[ChessComGame] = []
 

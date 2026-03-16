@@ -1,14 +1,28 @@
-from typing import List, Literal
+from enum import Enum
+from typing import List
 
 from pydantic import BaseModel, Field
 
 
+class Timeframe(str, Enum):
+    THREE_MONTHS = "3_months"
+    ONE_YEAR = "1_year"
+    FIVE_YEARS = "5_years"
+    TEN_YEARS = "10_years"
+
+
+class GameType(str, Enum):
+    RAPID = "rapid"
+    BLITZ = "blitz"
+    BULLET = "bullet"
+
+
 class FetchGamesRequest(BaseModel):
-    timeframe: Literal["3_months", "1_year", "5_years", "10_years"] = Field(
-        default="3_months",
+    timeframe: Timeframe = Field(
+        default=Timeframe.THREE_MONTHS,
         description="How far back to fetch games",
     )
-    game_types: List[Literal["rapid", "blitz", "bullet"]] = Field(
-        default=["rapid", "blitz", "bullet"],
+    game_types: List[GameType] = Field(
+        default=[GameType.RAPID, GameType.BLITZ, GameType.BULLET],
         description="Filter by game types",
     )
