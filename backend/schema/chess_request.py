@@ -2,6 +2,7 @@ from enum import Enum
 from typing import List
 
 from pydantic import BaseModel, Field
+from pydantic import Json as JSON
 
 
 class Timeframe(str, Enum):
@@ -26,3 +27,10 @@ class FetchGamesRequest(BaseModel):
         default=[GameType.RAPID, GameType.BLITZ, GameType.BULLET],
         description="Filter by game types",
     )
+
+
+class AnalysedGame(BaseModel):
+    analysed_game: JSON = Field(description="Full Stockfish analysis output for the game")
+    white_accuracy: float = Field(description="White's overall accuracy percentage")
+    black_accuracy: float = Field(description="Black's overall accuracy percentage")
+    user_blunder_count: float = Field(description="Number of blunders made by the user")

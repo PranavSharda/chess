@@ -25,7 +25,7 @@ def _user_dict(user) -> dict:
     }
 
 
-@router.post('/user', response_model=TokenResponse)
+@router.post('/users', response_model=TokenResponse)
 def signup(
     request: SignUpRequest,
     user_repo: UserRepository = Depends(get_user_repository)
@@ -62,7 +62,7 @@ def signup(
     )
 
 
-@router.post('/user/signin', response_model=TokenResponse)
+@router.post('/users/signin', response_model=TokenResponse)
 def login(
     request: SignInRequest,
     user_repo: UserRepository = Depends(get_user_repository)
@@ -95,13 +95,13 @@ def login(
     )
 
 
-@router.get('/user/me', response_model=UserResponse)
+@router.get('/users/me', response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     """Return the currently authenticated user's profile."""
     return UserResponse(**_user_dict(current_user))
 
 
-@router.patch('/user/{user_id}/chess-com', response_model=UserResponse)
+@router.patch('/users/{user_id}/chess-com', response_model=UserResponse)
 async def update_chess_com_username(
     user_id: str,
     request: UpdateChessComUsername,

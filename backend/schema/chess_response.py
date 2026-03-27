@@ -30,23 +30,27 @@ class ChessComGame(BaseModel):
     black_rating: Optional[int] = None
 
 
-class GamePlayer(BaseModel):
-    username: str
-    result: str
-    rating: Optional[int] = None
-
-
 class GameResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
     game_id: str
-    uuid: str
     pgn: str
     tcn: Optional[str] = None
     chess_com_username: str
+    chess_com_game_uuid: Optional[str] = None
     end_time: Optional[int] = None
-    time_control: str
-    time_class: str
-    white: Optional[GamePlayer] = None
-    black: Optional[GamePlayer] = None
+    time_control: Optional[str] = None
+    time_class: Optional[str] = None
+    white_username: Optional[str] = None
+    black_username: Optional[str] = None
+    white_result: Optional[str] = None
+    black_result: Optional[str] = None
+    white_rating: Optional[int] = None
+    black_rating: Optional[int] = None
+    white_accuracy: Optional[float] = None
+    black_accuracy: Optional[float] = None
+    user_blunder_count: Optional[int] = None
+    is_analysed: bool = False
 
 
 class ListGamesResponse(BaseModel):

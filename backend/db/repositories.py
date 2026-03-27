@@ -53,10 +53,14 @@ class UserGameRepository(BaseRepository[UserGame]):
     def __init__(self, session: Session):
         super().__init__(UserGame, session)
 
+    def get_by_id(self, id: UUID) -> Optional[UserGame]:
+        """Get a single game by its primary key."""
+        return self.session.query(UserGame).filter(UserGame.game_id == id).first()
+
     def get_by_game_id(self, game_id: UUID) -> Optional[UserGame]:
         """Get a single game by its primary key."""
-        return self.session.query(UserGame).filter(UserGame.game_id == game_id).first()
-
+        return self.get_by_id(game_id)
+    
     def get_by_user_id(self, user_id: UUID, limit: int = 500, offset: int = 0) -> List[UserGame]:
         """Get games for a user, newest first."""
         return (

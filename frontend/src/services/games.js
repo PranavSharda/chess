@@ -6,7 +6,7 @@ export const fetchGames = async () => {
 }
 
 export const fetchFromChessCom = async ({ timeframe = '3_months', gameTypes = ['rapid', 'blitz', 'bullet'] } = {}) => {
-  const response = await api.post('/games/fetch', { timeframe, game_types: gameTypes })
+  const response = await api.post('/games/import', { timeframe, game_types: gameTypes })
   return response.data
 }
 
@@ -16,7 +16,7 @@ export const getGame = async (gameId) => {
 }
 
 export const linkChessComUsername = async (userId, username) => {
-  const response = await api.patch(`/user/${userId}/chess-com`, {
+  const response = await api.patch(`/users/${userId}/chess-com`, {
     chess_com_username: username.toLowerCase(),
   })
   return response.data

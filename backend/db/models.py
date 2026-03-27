@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, ForeignKey, BigInteger, JSON, Float, Integer
+from sqlalchemy import Column, String, DateTime, Text, ForeignKey, BigInteger, JSON, Float, Integer, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -43,3 +43,4 @@ class UserGame(Base):
     user_blunder_count = Column(Integer, nullable=True)
     white_rating = Column(Integer, nullable=True)
     black_rating = Column(Integer, nullable=True)
+    is_analysed = Column(Boolean, nullable=False, default=False, server_default="false")
