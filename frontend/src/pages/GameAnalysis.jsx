@@ -13,6 +13,7 @@ import MoveControls from '../components/chess/MoveControls'
 import Spinner from '../components/ui/Spinner'
 import { formatDateShort, getResultText } from '../utils/formatters'
 import { getIsWhite } from '../utils/chessHelpers'
+import { playMoveSound } from '../utils/sounds'
 import './GameAnalysis.css'
 
 function GameAnalysis() {
@@ -25,6 +26,16 @@ function GameAnalysis() {
   const chessGame = useChessGame()
   const boardSize = useBoardSize(boardWrapperRef)
   const { evaluation, topLines, bestMove, isAnalyzing, error: engineError } = useStockfish(chessGame.position)
+
+  // Play sound on move navigation
+  const prevNodeRef = useRef(null)
+  useEffect(() => {
+    const node = chessGame.currentNode
+    if (node !== prevNodeRef.current && node?.move) {
+      playMoveSound(node.move)
+    }
+    prevNodeRef.current = node
+  }, [chessGame.currentNode])
 
   useKeyboardNav({
     onLeft: chessGame.goBack,
@@ -63,7 +74,7 @@ function GameAnalysis() {
     )
   }
 
-  const onDrop = (src, tgt) => chessGame.makeMove(src, tgt)
+  const onDrop = (src, tgt) => !!chessGame.makeMove(src, tgt)
 
   return (
     <div className="game-analysis-container">
@@ -104,9 +115,10 @@ function GameAnalysis() {
           />
 
           <MoveList
-            moveHistory={chessGame.moveHistory}
-            currentMoveIndex={chessGame.currentMoveIndex}
-            onMoveClick={chessGame.goToMove}
+            root={chessGame.root}
+            currentNode={chessGame.currentNode}
+            onNodeClick={chessGame.goToNode}
+            treeVersion={chessGame.treeVersion}
           />
 
           <MoveControls

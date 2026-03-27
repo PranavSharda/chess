@@ -60,6 +60,7 @@
   font-weight: 500;
   color: #e8e6e3;
   border-radius: 2px;
+  position: relative;
 }
 
 .moves-table .move-cell:hover {
@@ -78,6 +79,78 @@
 
 .moves-table .move-cell.empty:hover {
   background: transparent;
+}
+
+/* Variation badge on main line moves */
+.variation-badge {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.6rem;
+  color: #a08b6e;
+  background: rgba(160, 139, 110, 0.15);
+  padding: 0 3px;
+  border-radius: 3px;
+  font-weight: 600;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+/* Variation rows */
+.variation-row {
+  border-bottom: none !important;
+}
+
+.variation-row:hover {
+  background: transparent !important;
+}
+
+.variation-cell {
+  padding: 0.2rem 0.5rem 0.3rem 1.2rem !important;
+  border-left: 2px solid #4a4542;
+  margin-left: 18px;
+}
+
+.variation-line {
+  display: inline;
+  font-size: 0.78rem;
+  color: #9e9b98;
+  line-height: 1.6;
+}
+
+.variation-line.depth-1 {
+  font-size: 0.74rem;
+  color: #858280;
+}
+
+.variation-line.depth-2 {
+  font-size: 0.7rem;
+  color: #706d6a;
+}
+
+.var-move-num {
+  color: #6a6764;
+  font-weight: 500;
+  margin-right: 2px;
+  font-size: 0.75em;
+}
+
+.var-move {
+  cursor: pointer;
+  padding: 1px 3px;
+  border-radius: 2px;
+  transition: background 0.1s;
+  font-weight: 500;
+}
+
+.var-move:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8e6e3;
+}
+
+.var-active {
+  background: rgba(34, 197, 94, 0.35) !important;
+  color: #fff !important;
+  font-weight: 600;
 }
 
 /* Scrollbar */
