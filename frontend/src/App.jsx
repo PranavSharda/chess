@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { AnalysisQueueProvider } from './contexts/AnalysisQueueContext'
 import PublicLayout from './layouts/PublicLayout'
 import AppShell from './layouts/AppShell'
 import Home from './pages/Home'
@@ -26,6 +27,7 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
+        <AnalysisQueueProvider>
         <Router>
           <Routes>
             <Route element={<PublicLayout />}>
@@ -44,6 +46,7 @@ function App() {
             </Route>
           </Routes>
         </Router>
+        </AnalysisQueueProvider>
       </ThemeProvider>
     </AuthProvider>
   )

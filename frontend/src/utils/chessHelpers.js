@@ -1,7 +1,10 @@
+export const getIsWhite = (game, chessComUsername) => {
+  return game.white_username?.toLowerCase() === chessComUsername?.toLowerCase()
+}
+
 export const getGameResult = (game, chessComUsername) => {
-  const isWhite = game.white?.username?.toLowerCase() === chessComUsername?.toLowerCase()
-  const playerData = isWhite ? game.white : game.black
-  const result = playerData?.result
+  const isWhite = getIsWhite(game, chessComUsername)
+  const result = isWhite ? game.white_result : game.black_result
 
   if (result === 'win') return { text: 'Won', variant: 'win' }
   if (result === 'checkmated' || result === 'resigned' || result === 'timeout' || result === 'abandoned') {
@@ -11,17 +14,17 @@ export const getGameResult = (game, chessComUsername) => {
 }
 
 export const getOpponent = (game, chessComUsername) => {
-  const isWhite = game.white?.username?.toLowerCase() === chessComUsername?.toLowerCase()
-  return isWhite ? game.black : game.white
-}
-
-export const getIsWhite = (game, chessComUsername) => {
-  return game.white?.username?.toLowerCase() === chessComUsername?.toLowerCase()
+  const isWhite = getIsWhite(game, chessComUsername)
+  return {
+    username: isWhite ? game.black_username : game.white_username,
+    rating: isWhite ? game.black_rating : game.white_rating,
+    result: isWhite ? game.black_result : game.white_result,
+  }
 }
 
 export const getResultText = (game) => {
-  if (game?.white?.result === 'win') return '1-0'
-  if (game?.black?.result === 'win') return '0-1'
+  if (game.white_result === 'win') return '1-0'
+  if (game.black_result === 'win') return '0-1'
   return '\u00BD-\u00BD'
 }
 

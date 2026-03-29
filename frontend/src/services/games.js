@@ -15,6 +15,11 @@ export const getGame = async (gameId) => {
   return response.data
 }
 
+export const saveGameAnalysis = async (gameId, data) => {
+  const response = await api.patch(`/games/${gameId}`, data)
+  return response.data
+}
+
 export const linkChessComUsername = async (userId, username) => {
   const response = await api.patch(`/users/${userId}/chess-com`, {
     chess_com_username: username.toLowerCase(),

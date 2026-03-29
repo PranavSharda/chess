@@ -6,90 +6,73 @@ Games fetched from Chess.com are stored but never batch-analyzed. The `is_analys
 
 ---
 
-## Phase 1: Backend — Expose analysis fields + save endpoint
+## Phase 1: Backend — Expose analysis fields + save endpoint [DONE]
 
-### 1a. Update `GameResponse` schema
-**File: `backend/schema/chess_response.py`**
-- Add to `GameResponse`: `is_analysed: bool = False`, `white_accuracy: Optional[float]`, `black_accuracy: Optional[float]`, `user_blunder_count: Optional[int]`
-- Create new `SaveAnalysisRequest` schema: `analysed_game: dict`, `white_accuracy: float`, `black_accuracy: float`, `user_blunder_count: int`
-- Create `GameDetailResponse(GameResponse)` that adds `analysed_game: Optional[dict]` — used only on single-game GET to avoid huge list payloads
-
-### 1b. Update `_game_to_response` and add detail variant
-**File: `backend/api/chess.py`**
-- Add `is_analysed`, `white_accuracy`, `black_accuracy`, `user_blunder_count` to `_game_to_response`
-- Create `_game_to_detail_response` that also includes `analysed_game` — used by `GET /games/{game_id}`
-
-### 1c. Add `PATCH /games/{game_id}/analysis` endpoint
-**File: `backend/api/chess.py`**
-- Auth required, verify `game.user_id == current_user.id`
-- Accept `SaveAnalysisRequest` body
-- Call repo method to persist + set `is_analysed = True`
-
-### 1d. Add `update_analysis` repository method
-**File: `backend/db/repositories.py`**
-- Can't use `BaseRepository.update` (it looks up by `self.model.id` but PK is `game_id`)
-- Direct update: set `analysed_game`, `white_accuracy`, `black_accuracy`, `user_blunder_count`, `is_analysed = True`, commit
+- `GameResponse` uses `from_attributes = True`, flat fields matching ORM columns (no manual mapping)
+- `AnalysedGame` request schema in `chess_request.py`
+- `PATCH /games/{game_id}` endpoint with 404/403 separation
+- `UserGameRepository.get_by_id` overridden for correct PK lookup, `BaseRepository.update` used for commit/refresh
+- `is_analysed` column + Alembic migration
+- REST naming: `/users/*`, `/games/import`
 
 ---
 
-## Phase 2: Stockfish batch engine
+## Phase 2: Stockfish batch engine [DONE]
 
-### 2a. Add persistent worker session to `stockfishAnalysis.js`
-**File: `frontend/src/engine/stockfishAnalysis.js`**
-- Current `analyzePosition` creates/destroys a worker per call — too expensive for 40+ positions per game
-- Add `createAnalysisSession()` returning `{ analyze(fen) -> Promise, destroy() }` that reuses one worker across all positions
-- Existing `analyzePosition` stays unchanged for interactive use
+### 2a. Persistent worker session in `stockfishAnalysis.js`
+- `createAnalysisSession()` → `{ analyze(fen) -> Promise, destroy() }`
+- One worker reused across all positions in a game
+- Existing `analyzePosition()` unchanged for interactive use
 
-### 2b. Create `analyzeFullGame.js`
-**New file: `frontend/src/engine/analyzeFullGame.js`**
-- Input: `pgn` string, `onProgress(moveIndex, totalMoves)` callback
-- Uses `chess.js` to parse PGN into list of positions (FENs)
-- Creates one analysis session, analyzes each position sequentially
-- For each move: records `eval_before`, `eval_after`, `best_move`, `top_lines`, computes `cp_loss` and `classification`
-- Classification thresholds: 0 = best, <20 = good, 20-50 = inaccuracy, 50-100 = mistake, 100+ = blunder
-- Computes `white_accuracy`, `black_accuracy` using centipawn-loss formula: `max(0, 103.1668 * exp(-0.04354 * cpLoss) - 3.1668)` averaged per side
-- Computes blunder counts per side
-- Returns `{ moves: [...], summary: { white_accuracy, black_accuracy, white_blunders, black_blunders, ... } }`
+### 2b. `analyzeFullGame.js`
+- Input: `pgn` string, `{ onProgress, signal }` options
+- Parses PGN → FEN list via chess.js, analyzes each position sequentially
+- Per move: `eval_before`, `eval_after`, `best_move`, `top_lines`, `cp_loss`, `classification`
+- Classification: 0 = best, ≤20 = good, ≤50 = inaccuracy, ≤100 = mistake, >100 = blunder
+- Accuracy formula: `max(0, 103.1668 * exp(-0.04354 * cpLoss) - 3.1668)` averaged per side
+- Supports `AbortSignal` for cancellation
+- Returns `{ moves: [...], summary: { white_accuracy, black_accuracy, *_blunders, *_mistakes, *_inaccuracies } }`
 
 ---
 
-## Phase 3: Analysis Queue Context
+## Phase 3: Analysis Queue Context [DONE]
 
-### 3a. Create `AnalysisQueueContext.jsx`
-**New file: `frontend/src/contexts/AnalysisQueueContext.jsx`**
-
+### 3a. `AnalysisQueueContext.jsx`
 State: `queue[]`, `currentGame`, `currentMove`, `totalMoves`, `completedCount`, `totalQueued`, `isProcessing`, `error`
 
-Key methods:
-- `enqueueGames(games)` — filters to `is_analysed === false`, deduplicates against already-queued/completed, starts processing
-- `processNext()` — pops next game, runs `analyzeFullGame`, calls `PATCH /games/{id}/analysis`, loops
-- `pauseQueue()` / `resumeQueue()` / `cancelQueue()`
+Methods:
+- `enqueueGames(games)` — filters `is_analysed === false`, deduplicates via `seenIdsRef`, auto-starts processing
+- `processNext()` — runs `analyzeFullGame`, PATCHes to backend via `saveGameAnalysis`, loops via `setTimeout`
+- `pauseQueue()` — aborts current analysis, stops processing
+- `resumeQueue()` — resumes from where it left off
+- `cancelQueue()` — aborts, clears queue and all state
 
-### 3b. Mount provider in App.jsx
-**File: `frontend/src/App.jsx`**
-- Wrap `<Router>` with `<AnalysisQueueProvider>` inside `AuthProvider`/`ThemeProvider`
-- Persists across page navigation — analysis continues in background as user browses
+### 3b. Mounted in `App.jsx`
+- `<AnalysisQueueProvider>` inside `ThemeProvider`, wrapping `<Router>`
+- Persists across page navigation
+
+### 3c. Auto-enqueue via `useGames` hook
+- `saveGameAnalysis(gameId, data)` added to `services/games.js`
+- `useGames` calls `enqueueGames(loaded)` after every successful `loadGames()`
+- Triggers on initial load, manual fetch, and auto-fetch — fire-and-forget
+- Nothing on the Games page depends on analysis success
+- Failed games can be re-queued later during trend analysis
 
 ---
 
-## Phase 4: Frontend API + UI integration
+## Phase 4: Frontend UI integration [TODO]
 
-### 4a. Add `saveGameAnalysis` to games service
-**File: `frontend/src/services/games.js`**
-- `saveGameAnalysis(gameId, data)` → `api.patch(/games/${gameId}/analysis, data)`
-
-### 4b. Trigger queue from Games page
-**File: `frontend/src/pages/Games.jsx`**
-- After `loadGames()` or fetch completes, call `enqueueGames(allGames)`
-- Show analysis status badge per game card (checkmark if analyzed, spinner if in queue/processing)
-
-### 4c. Analysis progress component
+### 4a. Analysis progress component
 **New file: `frontend/src/components/ui/AnalysisProgress.jsx`**
 - Compact bar: "Analyzing game X/Y — move M/N"
 - Progress bar + pause/cancel buttons
 - Render in Games page and optionally in AppShell header
 
-### 4d. Use pre-computed analysis in GameAnalysis page
+### 4b. Game card analysis status
+**File: `frontend/src/pages/Games.jsx`**
+- Show analysis status badge per game card (checkmark if analyzed, spinner if in queue/processing)
+
+### 4c. Use pre-computed analysis in GameAnalysis page
 **File: `frontend/src/pages/GameAnalysis.jsx`**
 - When `is_analysed === true`, display stored move classifications, accuracy scores, blunder highlights
 - Still allow live Stockfish for interactive exploration of side lines
@@ -113,19 +96,13 @@ Key methods:
   "summary": {
     "white_accuracy": 87.3, "black_accuracy": 72.1,
     "white_blunders": 1, "black_blunders": 3,
-    "white_mistakes": 2, "black_mistakes": 4
+    "white_mistakes": 2, "black_mistakes": 4,
+    "white_inaccuracies": 3, "black_inaccuracies": 5
   }
 }
 ```
 
 ---
-
-## Implementation order
-
-1. **Backend** (Phase 1) — no frontend dependency, unblocks everything
-2. **Batch engine** (Phase 2) — pure logic, testable standalone
-3. **Queue context** (Phase 3) — depends on Phase 2 + service from 4a
-4. **UI integration** (Phase 4) — depends on all above
 
 ## Verification
 
@@ -133,6 +110,6 @@ Key methods:
 2. Run migration: `make migrate.upgrade` (for `is_analysed` column)
 3. Fetch games on Games page — confirm `is_analysed: false` appears in API response
 4. Watch queue auto-start analyzing — check browser console for progress logs
-5. After a game completes, verify `PATCH /games/{id}/analysis` succeeds (Network tab)
+5. After a game completes, verify `PATCH /games/{id}` succeeds (Network tab)
 6. Refresh Games page — completed games show `is_analysed: true`
 7. Navigate to an analyzed game — confirm pre-computed analysis renders without re-running Stockfish

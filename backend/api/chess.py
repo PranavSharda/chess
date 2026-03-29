@@ -108,12 +108,12 @@ def fetch_games(
     )
 
     existing_uuids = user_game_repo.get_existing_chess_com_uuids(current_user.id)
-    added = 0
+    new_games = []
     for game in raw_games:
         ccuuid = game.chess_com_game_uuid
         if ccuuid and ccuuid in existing_uuids:
             continue
-        user_game_repo.create(
+        new_games.append(dict(
             user_id=current_user.id,
             pgn=game.pgn,
             tcn=game.tcn,
@@ -128,8 +128,10 @@ def fetch_games(
             black_result=game.black_result,
             white_rating=game.white_rating,
             black_rating=game.black_rating,
-        )
-        added += 1
+        ))
+    if new_games:
+        user_game_repo.bulk_create(new_games)
+    added = len(new_games)
 
     result = {
         "fetched": len(raw_games),

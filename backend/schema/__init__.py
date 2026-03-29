@@ -1,6 +1,6 @@
 from .user_request import SignUpRequest, SignInRequest, UpdateChessComUsername
 from .user_response import UserResponse, TokenResponse
-from .chess_request import FetchGamesRequest, Timeframe, GameType
+from .chess_request import FetchGamesRequest, Timeframe, GameType, AnalysedGame
 from .chess_response import ChessComGame, GameResponse, ListGamesResponse
 
 __all__ = [

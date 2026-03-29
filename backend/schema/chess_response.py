@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any, List
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 
@@ -33,7 +34,7 @@ class ChessComGame(BaseModel):
 class GameResponse(BaseModel):
     model_config = {"from_attributes": True}
 
-    game_id: str
+    game_id: UUID
     pgn: str
     tcn: Optional[str] = None
     chess_com_username: str

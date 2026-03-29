@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { fetchGames, fetchFromChessCom } from '../services/games'
+import { useAnalysisQueue } from '../contexts/AnalysisQueueContext'
 import { GAMES_PER_PAGE } from '../utils/constants'
 
 export default function useGames(isLinked) {
+  const { enqueueGames } = useAnalysisQueue()
   const [games, setGames] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -16,9 +18,11 @@ export default function useGames(isLinked) {
     setError('')
     try {
       const data = await fetchGames()
-      setGames(data.games || [])
+      const loaded = data.games || []
+      setGames(loaded)
       setTotal(data.total || 0)
       setPage(1)
+      enqueueGames(loaded)
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Failed to fetch games')
       setGames([])
@@ -26,7 +30,7 @@ export default function useGames(isLinked) {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [enqueueGames])
 
   const fetchFromChessComAndReload = useCallback(async (timeframe = '3_months') => {
     setIsFetchingChessCom(true)

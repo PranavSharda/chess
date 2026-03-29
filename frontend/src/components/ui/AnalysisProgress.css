@@ -1,0 +1,78 @@
+.analysis-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+  min-height: 36px;
+}
+
+.analysis-progress-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.analysis-progress-label {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.analysis-progress-error {
+  color: var(--color-red, #e53e3e);
+  font-size: 12px;
+}
+
+.analysis-progress-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.analysis-progress-bar-fill {
+  height: 100%;
+  background: var(--color-green, #48bb78);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.analysis-progress-bar-fill.paused {
+  background: var(--color-amber, #ecc94b);
+}
+
+.analysis-progress-bar-fill.error {
+  background: var(--color-red, #e53e3e);
+}
+
+.analysis-progress-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.analysis-progress-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.analysis-progress-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.analysis-progress-btn.cancel:hover {
+  color: var(--color-red, #e53e3e);
+}
