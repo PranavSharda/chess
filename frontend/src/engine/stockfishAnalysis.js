@@ -5,7 +5,7 @@
 
 const STOCKFISH_URL = '/stockfish/stockfish-18-lite-single.js'
 const DEPTH = 18
-const MULTI_PV = 3
+const DEFAULT_MULTI_PV = 3
 
 function createWorker() {
   return new Worker(STOCKFISH_URL, { type: 'classic' })
@@ -44,6 +44,10 @@ function parseBestMove(line) {
   return m ? m[1] : null
 }
 
+function getTopLines(multipvLines, multiPv) {
+  return Array.from({ length: multiPv }, (_, idx) => multipvLines[idx + 1]).filter(Boolean)
+}
+
 /**
  * Analyze a position (FEN) and return { evaluation, best_move, top_lines }.
  * Matches the shape previously returned by the backend.
@@ -55,7 +59,7 @@ function parseBestMove(line) {
  *   const result = await session.analyze(fen)
  *   session.destroy()
  */
-export function createAnalysisSession() {
+export function createAnalysisSession({ multiPv = DEFAULT_MULTI_PV } = {}) {
   const worker = createWorker()
   let ready = false
   let destroyed = false
@@ -77,7 +81,7 @@ export function createAnalysisSession() {
         if (line === 'uciok' && !ready) {
           ready = true
           clearTimeout(initTimeout)
-          worker.postMessage(`setoption name MultiPV value ${MULTI_PV}`)
+          worker.postMessage(`setoption name MultiPV value ${multiPv}`)
           worker.postMessage('isready')
           continue
         }
@@ -105,9 +109,7 @@ export function createAnalysisSession() {
           const bestMove = parseBestMove(line)
           clearTimeout(pending.timeout)
 
-          const topLines = [1, 2, 3]
-            .map((i) => pending.multipvLines[i])
-            .filter(Boolean)
+          const topLines = getTopLines(pending.multipvLines, multiPv)
 
           const first = topLines[0]
           const evaluation = first
@@ -181,30 +183,32 @@ export function createAnalysisSession() {
  */
 export async function createAnalysisPool(size) {
   const count = size || Math.min(navigator.hardwareConcurrency || 4, 6)
+  console.log(`[Pool] Spawning ${count} workers (${navigator.hardwareConcurrency} cores available)`)
   const sessions = await Promise.all(
     Array.from({ length: count }, () => createAnalysisSession())
   )
   let destroyed = false
 
   return {
-    async analyzeAll(fens, { onProgress, signal, depth = DEPTH } = {}) {
+    async analyzeAll(fens, { onProgress, signal, depth = DEPTH, label = '' } = {}) {
       if (destroyed) throw new Error('Pool destroyed')
 
       const results = new Array(fens.length)
       let nextIdx = 0
       let completed = 0
 
-      async function runWorker(session) {
+      async function runWorker(session, workerId) {
         while (nextIdx < fens.length) {
           if (signal?.aborted) throw new Error('Analysis cancelled')
           const idx = nextIdx++
+          console.log(`[Pool] Worker ${workerId} → position ${idx + 1}/${fens.length}${label ? ` (${label})` : ''}`)
           results[idx] = await session.analyze(fens[idx], depth)
           completed++
           if (onProgress) onProgress(completed, fens.length)
         }
       }
 
-      await Promise.all(sessions.map((s) => runWorker(s)))
+      await Promise.all(sessions.map((s, i) => runWorker(s, i)))
       return results
     },
 
@@ -215,7 +219,7 @@ export async function createAnalysisPool(size) {
   }
 }
 
-export function analyzePosition(fen) {
+export function analyzePosition(fen, { multiPv = DEFAULT_MULTI_PV, depth = DEPTH } = {}) {
   const worker = createWorker()
   const sideToMove = fen.includes(' w ') ? 'w' : 'b'
 
@@ -238,8 +242,8 @@ export function analyzePosition(fen) {
         if (line === 'uciok') {
           worker.postMessage('ucinewgame')
           worker.postMessage(`position fen ${fen}`)
-          worker.postMessage(`setoption name MultiPV value ${MULTI_PV}`)
-          worker.postMessage(`go depth ${DEPTH}`)
+          worker.postMessage(`setoption name MultiPV value ${multiPv}`)
+          worker.postMessage(`go depth ${depth}`)
           break
         }
 
@@ -260,9 +264,7 @@ export function analyzePosition(fen) {
           if (resolved) break
           resolved = true
 
-          const topLines = [1, 2, 3]
-            .map((i) => multipvLines[i])
-            .filter(Boolean)
+          const topLines = getTopLines(multipvLines, multiPv)
 
           const first = topLines[0]
           const evaluation = first
@@ -297,4 +299,3 @@ export function analyzePosition(fen) {
     worker.postMessage('uci')
   })
 }
-

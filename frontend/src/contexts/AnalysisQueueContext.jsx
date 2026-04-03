@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
-import { analyzeFullGame } from '../engine/analyzeFullGame'
+import { analyzeFullGame, WORKER_COUNT } from '../engine/analyzeFullGame'
 import { saveGameAnalysis } from '../services/games'
 
 const AnalysisQueueContext = createContext(null)
@@ -11,88 +11,103 @@ export function useAnalysisQueue() {
 }
 
 export function AnalysisQueueProvider({ children }) {
-  const [queue, setQueue] = useState([])
-  const [currentGame, setCurrentGame] = useState(null)
-  const [currentMove, setCurrentMove] = useState(0)
-  const [totalMoves, setTotalMoves] = useState(0)
   const [completedCount, setCompletedCount] = useState(0)
   const [totalQueued, setTotalQueued] = useState(0)
+  const [activeWorkers, setActiveWorkers] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState(null)
 
   const pausedRef = useRef(false)
   const abortRef = useRef(null)
-  const processingRef = useRef(false)
+  const runningRef = useRef(0)
   const queueRef = useRef([])
-  // Track game IDs we've already queued or completed to avoid duplicates
   const seenIdsRef = useRef(new Set())
+  const activeSessionsRef = useRef(new Set())
+  const processingRef = useRef(false)
 
-  const processNext = useCallback(async () => {
-    if (processingRef.current) return
+  const processQueue = useCallback(async () => {
     if (pausedRef.current) return
-
-    const next = queueRef.current[0]
-    if (!next) {
-      setIsProcessing(false)
-      setCurrentGame(null)
-      return
-    }
-
-    processingRef.current = true
-    setIsProcessing(true)
-    setCurrentGame(next)
-    setCurrentMove(0)
-    setTotalMoves(0)
-    setError(null)
 
     const abortController = new AbortController()
     abortRef.current = abortController
 
-    try {
-      const result = await analyzeFullGame(next.pgn, {
-        onProgress: (moveIdx, total) => {
-          setCurrentMove(moveIdx)
-          setTotalMoves(total)
-        },
-        signal: abortController.signal,
-      })
+    const workerCount = Math.min(WORKER_COUNT, queueRef.current.length)
+    console.log(`[Queue] Starting ${workerCount} workers for ${queueRef.current.length} games (${navigator.hardwareConcurrency} cores)`)
 
-      await saveGameAnalysis(next.game_id, {
-        analysed_game: { moves: result.moves, summary: result.summary },
-        white_accuracy: result.summary.white_accuracy,
-        black_accuracy: result.summary.black_accuracy,
-        user_blunder_count:
-          result.summary.white_blunders + result.summary.black_blunders,
-      })
+    setIsProcessing(true)
 
-      // Remove from queue, bump completed
-      queueRef.current = queueRef.current.slice(1)
-      setQueue(queueRef.current)
-      setCompletedCount((c) => c + 1)
-    } catch (err) {
-      if (err.message === 'Analysis cancelled') {
-        // Cancelled — don't set error, just stop
-        processingRef.current = false
-        return
+    async function runWorker(workerId) {
+      while (queueRef.current.length > 0) {
+        if (pausedRef.current || abortController.signal.aborted) return
+
+        const game = queueRef.current.shift()
+        if (!game) return
+
+        runningRef.current++
+        setActiveWorkers(runningRef.current)
+
+        const startTime = performance.now()
+
+        try {
+          console.log(`[Queue] Worker ${workerId} → game ${game.game_id}`)
+
+          const result = await analyzeFullGame(game.pgn, {
+            signal: abortController.signal,
+            gameId: game.game_id,
+            workerId,
+            onSession: (session) => activeSessionsRef.current.add(session),
+          })
+
+          const totalMs = result.timings?.totalMs ?? (performance.now() - startTime)
+          const elapsed = (totalMs / 1000).toFixed(1)
+          const numMoves = result.moves.length
+          const perMove = result.timings?.msPerMove != null
+            ? (result.timings.msPerMove / 1000).toFixed(2)
+            : numMoves > 0
+              ? (totalMs / 1000 / numMoves).toFixed(2)
+              : '?'
+          const timingBreakdown = result.timings
+            ? `load ${result.timings.loadPgnMs}ms, fen ${result.timings.buildFenMs}ms, engine ${result.timings.engineMs}ms, post ${result.timings.postProcessMs}ms`
+            : 'timing breakdown unavailable'
+          console.log(
+            `[Analysis] Worker ${workerId} finished game ${game.game_id} — ${numMoves} moves in ${elapsed}s (${perMove}s/move; ${timingBreakdown})`
+          )
+
+          await saveGameAnalysis(game.game_id, {
+            analysed_game: { moves: result.moves, summary: result.summary },
+            white_accuracy: result.summary.white_accuracy,
+            black_accuracy: result.summary.black_accuracy,
+            user_blunder_count:
+              result.summary.white_blunders + result.summary.black_blunders,
+          })
+
+          setCompletedCount((c) => c + 1)
+        } catch (err) {
+          if (err.message === 'Analysis cancelled' || err.message === 'Session destroyed') return
+
+          const isSkip = err.message?.includes('skipping')
+          if (isSkip) {
+            console.warn(`[Queue] Worker ${workerId} skipped game ${game.game_id}: ${err.message}`)
+          } else {
+            console.error(`[Queue] Worker ${workerId} failed game ${game.game_id}:`, err)
+            setError({ gameId: game.game_id, message: err.message })
+          }
+          setCompletedCount((c) => c + 1)
+        } finally {
+          runningRef.current--
+          setActiveWorkers(runningRef.current)
+        }
       }
-      console.error('Analysis failed for game', next.game_id, err)
-      setError({ gameId: next.game_id, message: err.message })
-      // Skip failed game
-      queueRef.current = queueRef.current.slice(1)
-      setQueue(queueRef.current)
-    } finally {
-      abortRef.current = null
-      processingRef.current = false
-      setCurrentGame(null)
     }
 
-    // Process next in queue
-    if (!pausedRef.current && queueRef.current.length > 0) {
-      // Use setTimeout to avoid deep recursion
-      setTimeout(() => processNext(), 0)
-    } else {
-      setIsProcessing(false)
-    }
+    await Promise.all(
+      Array.from({ length: workerCount }, (_, i) => runWorker(i))
+    )
+
+    abortRef.current = null
+    setIsProcessing(false)
+    setActiveWorkers(0)
+    console.log('[Queue] All workers finished')
   }, [])
 
   const enqueueGames = useCallback((games) => {
@@ -106,51 +121,59 @@ export function AnalysisQueueProvider({ children }) {
     }
 
     queueRef.current = [...queueRef.current, ...newGames]
-    setQueue(queueRef.current)
     setTotalQueued((t) => t + newGames.length)
 
-    if (!processingRef.current && !pausedRef.current) {
-      processNext()
+    if (!isProcessing && !pausedRef.current) {
+      processQueue()
     }
-  }, [processNext])
+  }, [isProcessing, processQueue])
 
   const pauseQueue = useCallback(() => {
     pausedRef.current = true
     if (abortRef.current) abortRef.current.abort()
+    // Kill active Stockfish workers so they don't hang
+    for (const session of activeSessionsRef.current) {
+      try { session.destroy() } catch (_) {}
+    }
+    activeSessionsRef.current.clear()
     setIsProcessing(false)
   }, [])
 
   const resumeQueue = useCallback(() => {
     pausedRef.current = false
-    if (queueRef.current.length > 0 && !processingRef.current) {
-      processNext()
+    if (queueRef.current.length > 0) {
+      processQueue()
     }
-  }, [processNext])
+  }, [processQueue])
 
   const cancelQueue = useCallback(() => {
     pausedRef.current = false
     if (abortRef.current) abortRef.current.abort()
+    // Kill all active Stockfish workers immediately
+    for (const session of activeSessionsRef.current) {
+      try { session.destroy() } catch (_) {}
+    }
+    activeSessionsRef.current.clear()
     queueRef.current = []
     seenIdsRef.current.clear()
-    setQueue([])
-    setCurrentGame(null)
+    runningRef.current = 0
     setIsProcessing(false)
     setCompletedCount(0)
     setTotalQueued(0)
+    setActiveWorkers(0)
     setError(null)
+    console.log('[Queue] Cancelled — all workers terminated')
   }, [])
 
   return (
     <AnalysisQueueContext.Provider
       value={{
-        queue,
-        currentGame,
-        currentMove,
-        totalMoves,
         completedCount,
         totalQueued,
+        activeWorkers,
         isProcessing,
         error,
+        queueLength: queueRef.current.length,
         enqueueGames,
         pauseQueue,
         resumeQueue,
