@@ -1,8 +1,8 @@
 import { Chess } from 'chess.js'
 import { createAnalysisSession } from './stockfishAnalysis'
 
-export const BATCH_DEPTH = 16
-export const WORKER_COUNT = 2
+export const BATCH_DEPTH = 13
+export const WORKER_COUNT = Math.max(1, (navigator.hardwareConcurrency || 2) - 2)
 const FULL_GAME_MULTI_PV = 1
 
 // Shared FEN → eval cache across all games in this session

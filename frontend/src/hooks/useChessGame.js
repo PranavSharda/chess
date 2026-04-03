@@ -63,7 +63,7 @@ export default function useChessGame() {
     [currentNode, treeVersion]
   )
 
-  const loadPgn = useCallback((pgnString) => {
+  const loadPgn = useCallback((pgnString, { startAtMove } = {}) => {
     try {
       const pgn = new Chess()
       pgn.loadPgn(pgnString)
@@ -82,7 +82,16 @@ export default function useChessGame() {
       }
 
       rootRef.current = newRoot
-      setCurrentNode(newRoot)
+      // Navigate to a specific half-move index if requested
+      let startNode = newRoot
+      if (startAtMove != null && startAtMove >= 0) {
+        let node = newRoot
+        for (let i = 0; i <= startAtMove && node.children.length > 0; i++) {
+          node = node.children[0]
+        }
+        startNode = node
+      }
+      setCurrentNode(startNode)
       setSelectedSquare(null)
       setTreeVersion((v) => v + 1)
     } catch (err) {

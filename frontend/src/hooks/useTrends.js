@@ -1,133 +1,108 @@
-import { useMemo } from 'react'
-import { getIsWhite, getGameResult } from '../utils/chessHelpers'
-import { formatDateShort } from '../utils/formatters'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { fetchGames, fetchFromChessCom, fetchCommonMistakes } from '../services/games'
+import { useAnalysisQueue } from '../contexts/AnalysisQueueContext'
 
-const TIME_CONTROL_COLORS = {
-  bullet: '#f97316',
-  blitz: '#3b82f6',
-  rapid: '#8b5cf6',
-  classical: '#10b981',
+const STEPS = {
+  IDLE: 'idle',
+  IMPORTING: 'importing',
+  ANALYSING: 'analysing',
+  COMPUTING: 'computing',
+  DONE: 'done',
+  ERROR: 'error',
 }
 
-const WLD_COLORS = {
-  win: '#22c55e',
-  loss: '#ef4444',
-  draw: '#94a3b8',
-}
+export default function useTrends(timeframe, timeClass) {
+  const { enqueueGames, completedCount, totalQueued, isProcessing } = useAnalysisQueue()
+  const [step, setStep] = useState(STEPS.IDLE)
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+  const [gameStats, setGameStats] = useState({ total: 0, unanalysed: 0 })
+  const waitingForAnalysis = useRef(false)
+  const lastRunKey = useRef(null)
+  const activeFilters = useRef({ timeframe: null, timeClass: null })
 
-function formatMonth(ts) {
-  const d = new Date(ts * 1000)
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-}
+  const run = useCallback(async (tf, tc) => {
+    setStep(STEPS.IMPORTING)
+    setError(null)
+    setData(null)
+    waitingForAnalysis.current = false
+    activeFilters.current = { timeframe: tf, timeClass: tc || null }
 
-function monthKey(ts) {
-  const d = new Date(ts * 1000)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-
-export default function useTrends(allGames, username, timeClassFilter) {
-  const filtered = useMemo(() => {
-    let games = allGames || []
-    if (timeClassFilter && timeClassFilter !== 'all') {
-      games = games.filter((g) => g.time_class === timeClassFilter)
-    }
-    return [...games].sort((a, b) => (a.end_time || 0) - (b.end_time || 0))
-  }, [allGames, timeClassFilter])
-
-  const ratingData = useMemo(() => {
-    return filtered
-      .map((g) => {
-        const isWhite = getIsWhite(g, username)
-        const rating = isWhite ? g.white_rating : g.black_rating
-        if (!rating) return null
-        return {
-          date: g.end_time,
-          rating,
-          label: formatDateShort(g.end_time),
-          timeClass: g.time_class,
-        }
+    try {
+      // Step 1: Import from Chess.com
+      await fetchFromChessCom({
+        timeframe: tf,
+        gameTypes: tc ? [tc] : ['rapid', 'blitz', 'bullet'],
       })
-      .filter(Boolean)
-  }, [filtered, username])
 
-  const wldData = useMemo(() => {
-    const counts = { win: 0, loss: 0, draw: 0 }
-    for (const g of filtered) {
-      const { variant } = getGameResult(g, username)
-      counts[variant] = (counts[variant] || 0) + 1
-    }
-    return [
-      { name: 'Wins', value: counts.win, color: WLD_COLORS.win },
-      { name: 'Losses', value: counts.loss, color: WLD_COLORS.loss },
-      { name: 'Draws', value: counts.draw, color: WLD_COLORS.draw },
-    ]
-  }, [filtered, username])
+      // Step 2: Get games within timeframe
+      const { games } = await fetchGames(tf, tc)
+      const unanalysed = games.filter((g) => !g.is_analysed)
+      setGameStats({ total: games.length, unanalysed: unanalysed.length })
 
-  const analysedFiltered = useMemo(
-    () => filtered.filter((g) => g.is_analysed),
-    [filtered]
-  )
-
-  const accuracyData = useMemo(() => {
-    return analysedFiltered
-      .map((g) => {
-        const isWhite = getIsWhite(g, username)
-        const accuracy = isWhite ? g.white_accuracy : g.black_accuracy
-        if (accuracy == null) return null
-        return {
-          date: g.end_time,
-          accuracy: Math.round(accuracy * 10) / 10,
-          label: formatDateShort(g.end_time),
-        }
-      })
-      .filter(Boolean)
-  }, [analysedFiltered, username])
-
-  const blunderData = useMemo(() => {
-    const buckets = {}
-    for (const g of analysedFiltered) {
-      if (g.user_blunder_count == null || !g.end_time) continue
-      const key = monthKey(g.end_time)
-      if (!buckets[key]) {
-        buckets[key] = { month: formatMonth(g.end_time), totalBlunders: 0, totalGames: 0, sortKey: key }
+      if (unanalysed.length > 0) {
+        // Step 3: Analyse unanalysed games
+        setStep(STEPS.ANALYSING)
+        waitingForAnalysis.current = true
+        enqueueGames(unanalysed)
+      } else {
+        // All already analysed — go straight to computing
+        setStep(STEPS.COMPUTING)
+        const result = await fetchCommonMistakes(tf, tc)
+        setData(result)
+        setStep(STEPS.DONE)
       }
-      buckets[key].totalBlunders += g.user_blunder_count
-      buckets[key].totalGames += 1
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Something went wrong')
+      setStep(STEPS.ERROR)
     }
-    return Object.values(buckets)
-      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-      .map(({ month, totalBlunders, totalGames }) => ({
-        month,
-        avgBlunders: Math.round((totalBlunders / totalGames) * 10) / 10,
-        totalGames,
-      }))
-  }, [analysedFiltered])
+  }, [enqueueGames])
 
-  const timeControlData = useMemo(() => {
-    const counts = {}
-    for (const g of filtered) {
-      const tc = g.time_class || 'unknown'
-      counts[tc] = (counts[tc] || 0) + 1
+  // Trigger run when filters change
+  useEffect(() => {
+    if (!timeframe) {
+      lastRunKey.current = null
+      waitingForAnalysis.current = false
+      activeFilters.current = { timeframe: null, timeClass: null }
+      setStep(STEPS.IDLE)
+      setData(null)
+      setError(null)
+      setGameStats({ total: 0, unanalysed: 0 })
+      return
     }
-    return Object.entries(counts).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value,
-      color: TIME_CONTROL_COLORS[name] || '#6b7280',
-    }))
-  }, [filtered])
+    const runKey = `${timeframe}:${timeClass || 'all'}`
+    if (runKey === lastRunKey.current) return
+    lastRunKey.current = runKey
+    run(timeframe, timeClass)
+  }, [timeframe, timeClass, run])
 
-  const totalGames = filtered.length
-  const analysedGames = analysedFiltered.length
+  // Watch analysis queue — when done, fetch common mistakes
+  useEffect(() => {
+    if (!waitingForAnalysis.current) return
+    if (!isProcessing && completedCount > 0 && completedCount >= totalQueued) {
+      waitingForAnalysis.current = false
+      setStep(STEPS.COMPUTING)
+      fetchCommonMistakes(activeFilters.current.timeframe, activeFilters.current.timeClass)
+        .then((result) => {
+          setData(result)
+          setStep(STEPS.DONE)
+        })
+        .catch((err) => {
+          setError(err.response?.data?.detail || err.message || 'Failed to compute trends')
+          setStep(STEPS.ERROR)
+        })
+    }
+  }, [isProcessing, completedCount, totalQueued])
 
   return {
-    ratingData,
-    wldData,
-    accuracyData,
-    blunderData,
-    timeControlData,
-    totalGames,
-    analysedGames,
-    hasPartialAnalysis: analysedGames > 0 && analysedGames < totalGames,
-    isEmpty: totalGames === 0,
+    step,
+    openingMistakes: data?.opening_mistakes ?? [],
+    endgameMistakes: data?.endgame_mistakes ?? [],
+    totalAnalysed: data?.total_analysed ?? 0,
+    gameStats,
+    analysisProgress: { completed: completedCount, total: totalQueued },
+    error,
+    isEmpty: step === STEPS.DONE && data?.opening_mistakes?.length === 0 && data?.endgame_mistakes?.length === 0,
+    STEPS,
   }
 }

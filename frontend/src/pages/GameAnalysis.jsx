@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import useGame from '../hooks/useGame'
 import useChessGame from '../hooks/useChessGame'
@@ -18,6 +18,7 @@ import './GameAnalysis.css'
 
 function GameAnalysis() {
   const { gameId } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user } = useAuth()
   const boardWrapperRef = useRef(null)
@@ -45,7 +46,11 @@ function GameAnalysis() {
   })
 
   useEffect(() => {
-    if (game?.pgn) chessGame.loadPgn(game.pgn)
+    if (game?.pgn) {
+      const moveParam = searchParams.get('move')
+      const startAt = moveParam != null ? parseInt(moveParam, 10) : undefined
+      chessGame.loadPgn(game.pgn, { startAtMove: isNaN(startAt) ? undefined : startAt })
+    }
   }, [game])
 
   const isUserWhite = useMemo(() => {
@@ -53,8 +58,10 @@ function GameAnalysis() {
     return getIsWhite(game, user.chess_com_username)
   }, [game, user])
 
-  const topPlayer = isUserWhite ? game?.black : game?.white
-  const bottomPlayer = isUserWhite ? game?.white : game?.black
+  const whitePlayer = { username: game?.white_username, rating: game?.white_rating }
+  const blackPlayer = { username: game?.black_username, rating: game?.black_rating }
+  const topPlayer = isUserWhite ? blackPlayer : whitePlayer
+  const bottomPlayer = isUserWhite ? whitePlayer : blackPlayer
 
   if (gameLoading) {
     return (

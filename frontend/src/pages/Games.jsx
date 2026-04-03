@@ -14,6 +14,7 @@ import { getGameResult, getOpponent, getIsWhite } from '../utils/chessHelpers'
 import './Games.css'
 
 const TIMEFRAME_OPTIONS = [
+  { value: '', label: 'Select timeframe' },
   { value: '3_months', label: 'Past 3 months' },
   { value: '1_year', label: 'Past 1 year' },
   { value: '5_years', label: 'Past 5 years' },
@@ -33,7 +34,7 @@ function Games() {
   const [chessUsername, setChessUsername] = useState(user?.chess_com_username || '')
   const [linkingUsername, setLinkingUsername] = useState(false)
   const [linkError, setLinkError] = useState('')
-  const [timeframe, setTimeframe] = useState('3_months')
+  const [timeframe, setTimeframe] = useState('')
 
   const handleLinkUsername = async (e) => {
     e.preventDefault()
@@ -103,6 +104,7 @@ function Games() {
           <Button
             onClick={() => fetchFromChessCom(timeframe)}
             loading={isFetchingChessCom}
+            disabled={!timeframe}
             size="sm"
           >
             Fetch from Chess.com

@@ -57,3 +57,38 @@ class GameResponse(BaseModel):
 class ListGamesResponse(BaseModel):
     games: List[GameResponse]
     total: int
+
+
+class MistakeOccurrence(BaseModel):
+    game_id: UUID
+    move_number: int
+    side: str
+    san: str
+    best_move: Optional[str] = None
+    wc_loss: float
+    eval_before: Optional[Dict[str, Any]] = None
+    eval_after: Optional[Dict[str, Any]] = None
+    white_username: Optional[str] = None
+    black_username: Optional[str] = None
+    end_time: Optional[int] = None
+    time_class: Optional[str] = None
+
+
+class MistakeGame(BaseModel):
+    game_id: UUID
+    half_move_index: int
+
+
+class CommonMistake(BaseModel):
+    fen: str
+    played_move: str
+    best_move: Optional[str] = None
+    avg_wc_loss: float
+    count: int
+    games: List[MistakeGame]
+
+
+class CommonMistakesResponse(BaseModel):
+    opening_mistakes: List[CommonMistake]
+    endgame_mistakes: List[CommonMistake]
+    total_analysed: int

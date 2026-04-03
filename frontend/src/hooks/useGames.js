@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { fetchGames, fetchFromChessCom } from '../services/games'
 import { useAnalysisQueue } from '../contexts/AnalysisQueueContext'
 import { GAMES_PER_PAGE } from '../utils/constants'
@@ -11,7 +11,6 @@ export default function useGames(isLinked) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isFetchingChessCom, setIsFetchingChessCom] = useState(false)
-  const hasAutoFetched = useRef(false)
 
   const loadGames = useCallback(async () => {
     setIsLoading(true)
@@ -32,7 +31,7 @@ export default function useGames(isLinked) {
     }
   }, [enqueueGames])
 
-  const fetchFromChessComAndReload = useCallback(async (timeframe = '3_months') => {
+  const fetchFromChessComAndReload = useCallback(async (timeframe) => {
     setIsFetchingChessCom(true)
     setError('')
     try {
@@ -47,16 +46,6 @@ export default function useGames(isLinked) {
 
   useEffect(() => {
     if (isLinked) loadGames()
-  }, [isLinked, loadGames])
-
-  useEffect(() => {
-    if (!isLinked || hasAutoFetched.current) return
-    hasAutoFetched.current = true
-    setIsFetchingChessCom(true)
-    fetchFromChessCom({ timeframe: '3_months' })
-      .then(() => loadGames())
-      .catch(() => {})
-      .finally(() => setIsFetchingChessCom(false))
   }, [isLinked, loadGames])
 
   const totalPages = Math.ceil(total / GAMES_PER_PAGE)

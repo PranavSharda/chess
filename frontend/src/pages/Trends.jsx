@@ -1,217 +1,217 @@
 import React, { useState } from 'react'
-import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar,
-  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend,
-} from 'recharts'
+import { Link } from 'react-router-dom'
+import { Chessboard } from 'react-chessboard'
 import { useAuth } from '../contexts/AuthContext'
-import useGames from '../hooks/useGames'
 import useTrends from '../hooks/useTrends'
 import Card from '../components/ui/Card'
 import Select from '../components/ui/Select'
 import Spinner from '../components/ui/Spinner'
-import { formatDateShort } from '../utils/formatters'
 import './Trends.css'
 
+const TIMEFRAME_OPTIONS = [
+  { value: '', label: 'Select timeframe' },
+  { value: '3_months', label: 'Last 3 Months' },
+  { value: '1_year', label: 'Last Year' },
+  { value: '5_years', label: 'Last 5 Years' },
+  { value: '10_years', label: 'Last 10 Years' },
+]
+
 const TIME_CLASS_OPTIONS = [
-  { value: 'all', label: 'All Time Controls' },
+  { value: '', label: 'All Formats' },
   { value: 'rapid', label: 'Rapid' },
   { value: 'blitz', label: 'Blitz' },
   { value: 'bullet', label: 'Bullet' },
 ]
 
-const CHART_HEIGHT = 280
+function MistakeCard({ mistake }) {
+  return (
+    <Card className="mistake-card">
+      <div className="mistake-board">
+        <Chessboard
+          position={mistake.fen}
+          boardWidth={180}
+          arePiecesDraggable={false}
+          animationDuration={0}
+          customBoardStyle={{ borderRadius: '2px' }}
+          customDarkSquareStyle={{ backgroundColor: '#779952' }}
+          customLightSquareStyle={{ backgroundColor: '#edeed1' }}
+        />
+      </div>
+      <div className="mistake-info">
+        <div className="mistake-count">{mistake.count}x</div>
+        <div className="mistake-moves">
+          <div className="mistake-played">
+            Played: <strong>{mistake.played_move}</strong>
+          </div>
+          {mistake.best_move && (
+            <div className="mistake-best">
+              Best: <strong>{mistake.best_move}</strong>
+            </div>
+          )}
+        </div>
+        <div className="mistake-wc-loss">
+          Avg win% loss: {(mistake.avg_wc_loss * 100).toFixed(1)}%
+        </div>
+        {mistake.games?.[0] && (
+          <Link
+            to={`/games/${mistake.games[0].game_id}?move=${mistake.games[0].half_move_index - 1}`}
+            className="mistake-analyse-link"
+          >
+            Analyse
+          </Link>
+        )}
+      </div>
+    </Card>
+  )
+}
 
-function TrendEmpty({ text }) {
-  return <div className="trend-empty">{text}</div>
+function MistakeSection({ title, subtitle, mistakes }) {
+  return (
+    <div className="mistake-section">
+      <h2 className="mistake-section-title">{title}</h2>
+      {subtitle && <p className="mistake-section-subtitle">{subtitle}</p>}
+      {mistakes.length === 0 ? (
+        <p className="trend-empty">No repeated mistakes found</p>
+      ) : (
+        <div className="mistakes-grid">
+          {mistakes.map((m, i) => (
+            <MistakeCard key={`${m.fen}-${i}`} mistake={m} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ProgressState({ step, STEPS, gameStats, analysisProgress, error }) {
+  if (step === STEPS.IMPORTING) {
+    return (
+      <div className="trends-progress">
+        <Spinner size="md" />
+        <p>Importing games from Chess.com...</p>
+      </div>
+    )
+  }
+
+  if (step === STEPS.ANALYSING) {
+    const pct = analysisProgress.total > 0
+      ? Math.round((analysisProgress.completed / analysisProgress.total) * 100)
+      : 0
+    return (
+      <div className="trends-progress">
+        <Spinner size="md" />
+        <p>Analysing {gameStats.unanalysed} games with Stockfish...</p>
+        <div className="progress-bar-container">
+          <div className="progress-bar-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="progress-text">{analysisProgress.completed} / {analysisProgress.total} ({pct}%)</p>
+      </div>
+    )
+  }
+
+  if (step === STEPS.COMPUTING) {
+    return (
+      <div className="trends-progress">
+        <Spinner size="md" />
+        <p>Computing common mistakes...</p>
+      </div>
+    )
+  }
+
+  if (step === STEPS.ERROR) {
+    return (
+      <div className="trends-progress trends-error">
+        <p>{error || 'Something went wrong'}</p>
+      </div>
+    )
+  }
+
+  return null
 }
 
 function Trends() {
   const { user } = useAuth()
   const isLinked = !!user?.chess_com_username
-  const { allGames, isLoading } = useGames(isLinked)
-  const [timeClassFilter, setTimeClassFilter] = useState('all')
+  const [timeframe, setTimeframe] = useState('')
+  const [timeClass, setTimeClass] = useState('')
 
   const {
-    ratingData, wldData, accuracyData, blunderData,
-    timeControlData, totalGames, hasPartialAnalysis, analysedGames, isEmpty,
-  } = useTrends(allGames, user?.chess_com_username, timeClassFilter)
-
-  if (isLoading) {
-    return (
-      <div className="trends-page">
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-          <Spinner size="lg" />
-        </div>
-      </div>
-    )
-  }
+    step, STEPS, openingMistakes, endgameMistakes,
+    totalAnalysed, gameStats, analysisProgress, error, isEmpty,
+  } = useTrends(timeframe, timeClass)
 
   return (
     <div className="trends-page">
       <div className="trends-header">
         <div>
-          <h1 className="page-title">Trends</h1>
+          <h1 className="page-title">Common Mistakes</h1>
           <p className="page-subtitle">
-            {isEmpty
-              ? 'Import games to see your trends'
-              : `Tracking ${totalGames} games`}
+            {step === STEPS.DONE
+              ? `Based on ${totalAnalysed} analysed games`
+              : 'Find patterns in your opening and endgame play'}
           </p>
         </div>
-        <Select
-          className="trends-filter"
-          options={TIME_CLASS_OPTIONS}
-          value={timeClassFilter}
-          onChange={(e) => setTimeClassFilter(e.target.value)}
-        />
+        <div className="trends-filters">
+          <Select
+            className="trends-filter"
+            options={TIMEFRAME_OPTIONS}
+            value={timeframe}
+            onChange={(e) => setTimeframe(e.target.value)}
+            disabled={!isLinked}
+            aria-label="Timeframe"
+          />
+          <Select
+            className="trends-filter"
+            options={TIME_CLASS_OPTIONS}
+            value={timeClass}
+            onChange={(e) => setTimeClass(e.target.value)}
+            disabled={!isLinked}
+            aria-label="Format"
+          />
+        </div>
       </div>
 
-      {isEmpty ? (
-        <TrendEmpty text={
-          timeClassFilter !== 'all'
-            ? `No ${timeClassFilter} games found`
-            : 'No games imported yet. Fetch games from Chess.com to see trends.'
-        } />
-      ) : (
-        <div className="trends-grid">
-          {/* Rating Over Time */}
-          <Card title="Rating Over Time" className="trend-card trend-card--wide">
-            {ratingData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-                <LineChart data={ratingData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(ts) => formatDateShort(ts)}
-                    tick={{ fontSize: 12 }}
-                    stroke="#888"
-                  />
-                  <YAxis
-                    domain={['dataMin - 50', 'dataMax + 50']}
-                    tick={{ fontSize: 12 }}
-                    stroke="#888"
-                  />
-                  <Tooltip
-                    labelFormatter={(ts) => formatDateShort(ts)}
-                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333' }}
-                  />
-                  <Line
-                    type="monotone" dataKey="rating" name="Rating"
-                    stroke="#059669" strokeWidth={2}
-                    dot={false} activeDot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <TrendEmpty text="No rating data available" />
-            )}
-          </Card>
-
-          {/* Win / Loss / Draw */}
-          <Card title="Win / Loss / Draw" className="trend-card">
-            <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-              <PieChart>
-                <Pie
-                  data={wldData} dataKey="value" nameKey="name"
-                  cx="50%" cy="50%" outerRadius={90}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {wldData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-
-          {/* Time Controls */}
-          <Card title="Time Controls" className="trend-card">
-            <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-              <PieChart>
-                <Pie
-                  data={timeControlData} dataKey="value" nameKey="name"
-                  cx="50%" cy="50%" innerRadius={50} outerRadius={90}
-                  label={({ name, value }) => `${name} (${value})`}
-                  labelLine={false}
-                >
-                  {timeControlData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-
-          {/* Accuracy */}
-          <Card title="Accuracy" className="trend-card trend-card--wide">
-            {hasPartialAnalysis && (
-              <p className="trend-notice">
-                Based on {analysedGames} of {totalGames} games analysed
-              </p>
-            )}
-            {accuracyData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-                <AreaChart data={accuracyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(ts) => formatDateShort(ts)}
-                    tick={{ fontSize: 12 }}
-                    stroke="#888"
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fontSize: 12 }}
-                    stroke="#888"
-                  />
-                  <Tooltip
-                    labelFormatter={(ts) => formatDateShort(ts)}
-                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333' }}
-                  />
-                  <Area
-                    type="monotone" dataKey="accuracy" name="Accuracy %"
-                    stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15}
-                    strokeWidth={2} dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <TrendEmpty text="No analysed games yet" />
-            )}
-          </Card>
-
-          {/* Blunder Frequency */}
-          <Card title="Blunder Frequency" className="trend-card trend-card--wide">
-            {hasPartialAnalysis && (
-              <p className="trend-notice">
-                Based on {analysedGames} of {totalGames} games analysed
-              </p>
-            )}
-            {blunderData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-                <BarChart data={blunderData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#888" />
-                  <YAxis tick={{ fontSize: 12 }} stroke="#888" />
-                  <Tooltip
-                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333' }}
-                  />
-                  <Bar
-                    dataKey="avgBlunders" name="Avg Blunders/Game"
-                    fill="#ef4444" radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <TrendEmpty text="No analysed games yet" />
-            )}
-          </Card>
+      {!isLinked && (
+        <div className="trend-empty">
+          Link your Chess.com account to get started.
         </div>
+      )}
+
+      {step !== STEPS.IDLE && step !== STEPS.DONE && (
+        <ProgressState
+          step={step}
+          STEPS={STEPS}
+          gameStats={gameStats}
+          analysisProgress={analysisProgress}
+          error={error}
+        />
+      )}
+
+      {isLinked && step === STEPS.IDLE && (
+        <div className="trend-empty">
+          Select a timeframe to start trend analysis.
+        </div>
+      )}
+
+      {step === STEPS.DONE && isEmpty && (
+        <div className="trend-empty">
+          No repeated mistakes found for these filters. Try a longer window, another format, or analyse more games.
+        </div>
+      )}
+
+      {step === STEPS.DONE && !isEmpty && (
+        <>
+          <MistakeSection
+            title="Opening Mistakes"
+            subtitle="First 12 moves — positions where you repeatedly lose winning chances"
+            mistakes={openingMistakes}
+          />
+          <MistakeSection
+            title="Endgame Mistakes"
+            subtitle="Last 20 moves — positions where you repeatedly lose significant material"
+            mistakes={endgameMistakes}
+          />
+        </>
       )}
     </div>
   )

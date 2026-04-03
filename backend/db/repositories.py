@@ -61,16 +61,31 @@ class UserGameRepository(BaseRepository[UserGame]):
         """Get a single game by its primary key."""
         return self.get_by_id(game_id)
     
-    def get_by_user_id(self, user_id: UUID, limit: int = 500, offset: int = 0) -> List[UserGame]:
-        """Get games for a user, newest first."""
-        return (
+    def get_by_user_id(
+        self, user_id: UUID, limit: int = 500, offset: int = 0,
+        min_end_time: Optional[int] = None, time_class: Optional[str] = None,
+    ) -> List[UserGame]:
+        """Get games for a user, newest first. Optionally filter by min end_time and time_class."""
+        q = self.session.query(UserGame).filter(UserGame.user_id == user_id)
+        if min_end_time is not None:
+            q = q.filter(UserGame.end_time >= min_end_time)
+        if time_class is not None:
+            q = q.filter(UserGame.time_class == time_class)
+        return q.order_by(nulls_last(UserGame.end_time.desc())).offset(offset).limit(limit).all()
+
+    def get_analysed_by_user_id(
+        self, user_id: UUID, min_end_time: Optional[int] = None, time_class: Optional[str] = None,
+    ) -> List[UserGame]:
+        """Get all analysed games for a user, optionally filtered by min end_time and time_class."""
+        q = (
             self.session.query(UserGame)
-            .filter(UserGame.user_id == user_id)
-            .order_by(nulls_last(UserGame.end_time.desc()))
-            .offset(offset)
-            .limit(limit)
-            .all()
+            .filter(UserGame.user_id == user_id, UserGame.is_analysed == True)
         )
+        if min_end_time is not None:
+            q = q.filter(UserGame.end_time >= min_end_time)
+        if time_class is not None:
+            q = q.filter(UserGame.time_class == time_class)
+        return q.all()
 
     def count_by_user_id(self, user_id: UUID) -> int:
         """Count games for a user."""
