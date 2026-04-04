@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, nulls_last
 
 from db.repository import BaseRepository
-from db.models import User, UserGame
+from db.models import User, UserGame, UserPuzzle
 
 
 class UserRepository(BaseRepository[User]):
@@ -115,3 +115,61 @@ class UserGameRepository(BaseRepository[UserGame]):
         )
         return {r[0] for r in rows}
 
+
+class UserPuzzleRepository(BaseRepository[UserPuzzle]):
+    """Repository for stored puzzle candidates."""
+
+    def __init__(self, session: Session):
+        super().__init__(UserPuzzle, session)
+
+    def get_by_id(self, id: UUID) -> Optional[UserPuzzle]:
+        """Get a single puzzle by its primary key."""
+        return self.session.query(UserPuzzle).filter(UserPuzzle.puzzle_id == id).first()
+
+    def get_by_puzzle_id(self, puzzle_id: UUID) -> Optional[UserPuzzle]:
+        """Get a single puzzle by its primary key."""
+        return self.get_by_id(puzzle_id)
+
+    def get_by_user_id(
+        self, user_id: UUID, limit: int = 100, offset: int = 0, status: Optional[str] = None,
+    ) -> List[UserPuzzle]:
+        """Get puzzles for a user, optionally filtered by status."""
+        q = (
+            self.session.query(UserPuzzle)
+            .join(UserGame, UserGame.game_id == UserPuzzle.game_id)
+            .filter(UserPuzzle.user_id == user_id)
+        )
+        if status is not None:
+            q = q.filter(UserPuzzle.status == status)
+        return (
+            q.order_by(
+                nulls_last(UserGame.end_time.desc()),
+                nulls_last(UserPuzzle.source_half_move_index.desc()),
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+
+    def get_by_game_id(self, game_id: UUID) -> List[UserPuzzle]:
+        """Get all stored puzzle candidates for a game."""
+        return (
+            self.session.query(UserPuzzle)
+            .filter(UserPuzzle.game_id == game_id)
+            .order_by(nulls_last(UserPuzzle.source_half_move_index.desc()))
+            .all()
+        )
+
+    def get_existing_candidate(
+        self, user_id: UUID, game_id: UUID, source_half_move_index: int,
+    ) -> Optional[UserPuzzle]:
+        """Get an existing candidate for the same user/game/move index."""
+        return (
+            self.session.query(UserPuzzle)
+            .filter(
+                UserPuzzle.user_id == user_id,
+                UserPuzzle.game_id == game_id,
+                UserPuzzle.source_half_move_index == source_half_move_index,
+            )
+            .first()
+        )

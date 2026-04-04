@@ -1,4 +1,214 @@
 .puzzle-solver-page {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
+}
+
+.puzzle-solver-loading {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  color: var(--text-muted);
+}
+
+.puzzle-solver-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.puzzle-solver-header-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.puzzle-solver-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 420px);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.puzzle-play-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.puzzle-play-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.puzzle-play-title,
+.puzzle-info-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.puzzle-play-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.puzzle-turn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.puzzle-turn-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.puzzle-turn-dot.is-white {
+  background: #f0f0f0;
+  border: 1.5px solid rgba(0, 0, 0, 0.3);
+}
+
+.puzzle-turn-dot.is-black {
+  background: #333;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.puzzle-play-subtitle {
+  margin-top: var(--space-xs);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.puzzle-board-shell {
+  width: 100%;
+}
+
+.puzzle-feedback {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.puzzle-feedback.is-correct {
+  background: rgba(78, 205, 142, 0.12);
+  border: 1px solid rgba(78, 205, 142, 0.24);
+  color: #4ecd8e;
+}
+
+.puzzle-feedback.is-wrong {
+  background: rgba(235, 77, 75, 0.12);
+  border: 1px solid rgba(235, 77, 75, 0.24);
+  color: #eb4d4b;
+}
+
+.puzzle-feedback.is-solved {
+  background: rgba(78, 205, 142, 0.12);
+  border: 1px solid rgba(78, 205, 142, 0.24);
+  color: #4ecd8e;
+}
+
+.puzzle-play-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.puzzle-info-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.puzzle-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+}
+
+.puzzle-info-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.puzzle-info-label {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.puzzle-theme-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: var(--space-md);
+}
+
+.puzzle-empty-copy {
+  margin-top: var(--space-sm);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.puzzle-tip-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.puzzle-tip {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+@media (max-width: 960px) {
+  .puzzle-solver-header {
+    flex-direction: column;
+  }
+
+  .puzzle-solver-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .puzzle-solver-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .puzzle-solver-header-actions,
+  .puzzle-play-actions {
+    flex-direction: column;
+  }
+
+  .puzzle-solver-header-actions .btn,
+  .puzzle-play-actions .btn {
+    width: 100%;
+  }
+
+  .puzzle-info-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

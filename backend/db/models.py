@@ -44,3 +44,23 @@ class UserGame(Base):
     white_rating = Column(Integer, nullable=True)
     black_rating = Column(Integer, nullable=True)
     is_analysed = Column(Boolean, nullable=False, default=False, server_default="false")
+
+
+class UserPuzzle(Base):
+    """Stored puzzle candidates extracted from a user's analyzed games."""
+
+    __tablename__ = "user_puzzles"
+
+    puzzle_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    game_id = Column(UUID(as_uuid=True), ForeignKey("user_games.game_id", ondelete="CASCADE"), nullable=False)
+    start_fen = Column(Text, nullable=False)
+    source_half_move_index = Column(Integer, nullable=False)
+    played_move = Column(String, nullable=False)
+    best_move = Column(String, nullable=True)
+    solution_uci = Column(JSON, nullable=False)
+    cp = Column(Integer, nullable=True)
+    raw_tags = Column(JSON, nullable=True)
+    normalized_tags = Column(JSON, nullable=True)
+    candidate_score = Column(Float, nullable=True)
+    status = Column(String, nullable=False, default="candidate", server_default="candidate")

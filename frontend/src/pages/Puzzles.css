@@ -3,6 +3,22 @@
   margin: 0 auto;
 }
 
+.puzzles-toolbar {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-bottom: var(--space-lg);
+}
+
+.puzzles-summary {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  border: 1px solid rgba(78, 205, 142, 0.24);
+  border-radius: var(--radius-md);
+  background: rgba(78, 205, 142, 0.08);
+  color: var(--text-secondary);
+}
+
 .puzzles-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -28,31 +44,90 @@
   margin-top: var(--space-xs);
 }
 
-.coming-soon-section {
-  text-align: center;
+.puzzles-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-3xl) var(--space-lg);
+  gap: var(--space-md);
   color: var(--text-muted);
 }
 
-.coming-soon-section .coming-soon-icon {
-  font-size: 64px;
-  margin-bottom: var(--space-lg);
-  opacity: 0.5;
+.puzzles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-md);
 }
 
-.coming-soon-section h2 {
+.puzzle-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.puzzle-card-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: var(--space-xs);
+}
+
+.puzzle-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+
+.puzzle-card-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.puzzle-card-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.puzzle-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
   color: var(--text-secondary);
-  margin-bottom: var(--space-md);
 }
 
-.coming-soon-section p {
-  max-width: 500px;
-  margin: 0 auto;
-  line-height: 1.6;
+.puzzle-line-label,
+.puzzle-meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.puzzle-line-separator {
+  color: var(--text-muted);
+}
+
+.puzzle-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.puzzle-tag {
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
   .puzzles-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .puzzles-toolbar {
+    flex-direction: column;
+    justify-content: stretch;
+  }
+
+  .puzzles-toolbar .btn {
+    width: 100%;
   }
 }

@@ -6,6 +6,7 @@ import db
 
 from api.user import router as user_router
 from api.chess import router as games_router
+from api.puzzles import router as puzzles_router
 
 app = FastAPI(
     title="Chess API",
@@ -25,6 +26,7 @@ app.add_middleware(
 # Include routers
 app.include_router(user_router)
 app.include_router(games_router)
+app.include_router(puzzles_router)
 
 
 @app.get("/health")

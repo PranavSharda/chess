@@ -237,6 +237,65 @@ function buildGameEnd(off, dur) {
   n.start(0)
 }
 
+// Puzzle correct — bright ascending chime
+function buildPuzzleCorrect(off, dur) {
+  const notes = [523, 659, 784] // C5, E5, G5
+  notes.forEach((freq, i) => {
+    const t = i * 0.07
+    const o = off.createOscillator()
+    o.type = 'sine'
+    o.frequency.value = freq
+    const g = off.createGain()
+    g.gain.setValueAtTime(0.001, 0)
+    g.gain.setValueAtTime(0.18, t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.15)
+    o.connect(g).connect(off.destination)
+    o.start(0)
+  })
+}
+
+// Puzzle wrong — short low buzz
+function buildPuzzleWrong(off, dur) {
+  const o1 = off.createOscillator()
+  o1.type = 'sawtooth'
+  o1.frequency.value = 180
+  const g1 = off.createGain()
+  g1.gain.setValueAtTime(0.2, 0)
+  g1.gain.exponentialRampToValueAtTime(0.001, 0.18)
+  const lp = off.createBiquadFilter()
+  lp.type = 'lowpass'
+  lp.frequency.value = 600
+  o1.connect(lp).connect(g1).connect(off.destination)
+  o1.start(0)
+}
+
+// Puzzle solved — triumphant two-note fanfare
+function buildPuzzleSolved(off, dur) {
+  const pairs = [[392, 0], [523, 0.12]] // G4, C5
+  pairs.forEach(([freq, t]) => {
+    const o = off.createOscillator()
+    o.type = 'sine'
+    o.frequency.value = freq
+    const g = off.createGain()
+    g.gain.setValueAtTime(0.001, 0)
+    g.gain.setValueAtTime(0.22, t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25)
+    o.connect(g).connect(off.destination)
+    o.start(0)
+
+    // Add harmonic shimmer
+    const o2 = off.createOscillator()
+    o2.type = 'sine'
+    o2.frequency.value = freq * 2
+    const g2 = off.createGain()
+    g2.gain.setValueAtTime(0.001, 0)
+    g2.gain.setValueAtTime(0.08, t)
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.2)
+    o2.connect(g2).connect(off.destination)
+    o2.start(0)
+  })
+}
+
 /* ---------- init + playback ---------- */
 
 async function init() {
@@ -245,6 +304,9 @@ async function init() {
   cache.check = await render(0.25, buildCheck)
   cache.castle = await render(0.22, buildCastle)
   cache.gameEnd = await render(0.5, buildGameEnd)
+  cache.puzzleCorrect = await render(0.35, buildPuzzleCorrect)
+  cache.puzzleWrong = await render(0.25, buildPuzzleWrong)
+  cache.puzzleSolved = await render(0.5, buildPuzzleSolved)
   ready = true
 }
 
@@ -262,6 +324,10 @@ function ensureInit() {
   if (ready) return Promise.resolve()
   if (!initPromise) initPromise = init()
   return initPromise
+}
+
+export function playPuzzleSound(type) {
+  ensureInit().then(() => play(type))
 }
 
 export function playMoveSound(moveInfo) {

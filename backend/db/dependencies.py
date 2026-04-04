@@ -3,7 +3,7 @@ from typing import Generator
 from fastapi import Depends
 
 from db.sessions import get_session
-from db.repositories import UserRepository, UserGameRepository
+from db.repositories import UserRepository, UserGameRepository, UserPuzzleRepository
 from sqlalchemy.orm import Session
 
 
@@ -20,3 +20,9 @@ def get_user_game_repository(
     """Get UserGameRepository instance."""
     yield UserGameRepository(session)
 
+
+def get_user_puzzle_repository(
+    session: Session = Depends(get_session)
+) -> Generator[UserPuzzleRepository, None, None]:
+    """Get UserPuzzleRepository instance."""
+    yield UserPuzzleRepository(session)
